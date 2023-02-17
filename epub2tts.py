@@ -1,6 +1,14 @@
-#Source: https://medium.com/@zazazakaria18/turn-your-ebook-to-text-with-python-in-seconds-2a1e42804913
-#and https://xwiki.recursos.uoc.edu/wiki/mat00001ca/view/Research%20on%20Translation%20Technologies/Working%20with%20PDF%20files%20using%20Python/
-#which is just a ripoff from medium article
+#Inspired by this medium article:
+#https://medium.com/@zazazakaria18/turn-your-ebook-to-text-with-python-in-seconds-2a1e42804913
+#and this post which just cleaned up what was in the medium article:
+#https://xwiki.recursos.uoc.edu/wiki/mat00001ca/view/Research%20on%20Translation%20Technologies/Working%20with%20PDF%20files%20using%20Python/
+#
+#This script takes in an epub as only argument, then previews the first 256 characters
+#from each chapter - enter y to include that chapter, n to skip, and q when you are
+#done adding chapters. This preview step is required because most ebooks have a ton
+#of content up front that you don't want read to you.
+#Output will be mp3's for each chapter, read by Coqui TTS: https://github.com/coqui-ai/TTS
+
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
@@ -24,6 +32,7 @@ def chap2text(chap):
     
 blacklist = [   '[document]',   'noscript', 'header',   'html', 'meta', 'head','input', 'script',   ]
 
+#TODO: accept URL to fetch book directly from project gutenberg
 try:
     bookname=sys.argv[1]
 except:
@@ -56,9 +65,9 @@ tts = TTS(model_name)
 
 for i in range(len(chapters_to_read)):
     text=chap2text(chapters_to_read[i])
-    outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
-    outputmp3=str(i)+"-"+bookname.split(".")[0]+".mp3"
-    tts.tts_to_file(text=chapters_to_read[i], speaker='p270', file_path=outputwav)
+    outputwav=str(i+1)+"-"+bookname.split(".")[0]+".wav"
+    outputmp3=str(i+1)+"-"+bookname.split(".")[0]+".mp3"
+    tts.tts_to_file(text=chapters_to_read[i], speaker='p307', file_path=outputwav)
     #Seems TTS can only output in wav? convert to mp3 aftwarwards
     wav = AudioSegment.from_file(outputwav)
     wav.export(outputmp3, format="mp3")
