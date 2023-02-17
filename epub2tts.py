@@ -49,6 +49,9 @@ for item in book.get_items():
 chapters_to_read = []
 for i in range(len(chapters)):
     text=chap2text(chapters[i])
+    if len(text) < 10:
+        #too short to bother with
+        continue
     outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
     print(outputwav + " Length: " + str(len(text)))
     print(text[:256])
