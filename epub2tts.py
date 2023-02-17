@@ -5,8 +5,13 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import sys
-import codecs
+import subprocess
+import pydub
+from pydub import AudioSegment
 
+#From https://github.com/coqui-ai/TTS
+from TTS.api import TTS
+model_name = "tts_models/en/vctk/vits"
 
 def chap2text(chap):
     output = ''
@@ -19,10 +24,11 @@ def chap2text(chap):
     
 blacklist = [   '[document]',   'noscript', 'header',   'html', 'meta', 'head','input', 'script',   ]
 
-bookname=sys.argv[1]
-outputname=sys.argv[2]
-
-#outputfile=codecs.open(outputname,"w",encoding="utf-8")
+try:
+    bookname=sys.argv[1]
+except:
+    print("Please specify epub to read as first argument")
+    exit()
 
 book = epub.read_epub(bookname)
 
@@ -31,11 +37,29 @@ for item in book.get_items():
     if item.get_type() == ebooklib.ITEM_DOCUMENT:
         chapters.append(item.get_content())
 
-#for chapter in chapters:
-#    text=chap2text(chapter)
-#    outputfile.write(text+"\n")
+chapters_to_read = []
 for i in range(len(chapters)):
     text=chap2text(chapters[i])
-    outputname=str(i)+".txt"
-    outputfile=codecs.open(outputname,"w",encoding="utf-8")
-    outputfile.write(text+"\n")
+    outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
+    print(outputwav + " Length: " + str(len(text)))
+    print(text[:256])
+    include = input("\nInclude? (y/n/q): ")
+    if include == 'y':
+        chapters_to_read.append(text)
+    if include == 'q':
+        break
+
+print("Number of chapters to read: " + str(len(chapters_to_read)))
+
+# Init TTS
+tts = TTS(model_name)
+
+for i in range(len(chapters_to_read)):
+    text=chap2text(chapters_to_read[i])
+    outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
+    outputmp3=str(i)+"-"+bookname.split(".")[0]+".mp3"
+    tts.tts_to_file(text=chapters_to_read[i], speaker='p270', file_path=outputwav)
+    #Seems TTS can only output in wav? convert to mp3 aftwarwards
+    wav = AudioSegment.from_file(outputwav)
+    wav.export(outputmp3, format="mp3")
+    subprocess.call(['rm', '-f', outputwav])
