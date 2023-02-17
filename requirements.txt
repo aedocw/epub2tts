@@ -1,0 +1,4 @@
+TTS
+ebooklib
+beautifulsoup4
+pydub
