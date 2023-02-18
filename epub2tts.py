@@ -29,7 +29,7 @@ def chap2text(chap):
             output += '{} '.format(t)
     return output
     
-blacklist = [   '[document]',   'noscript', 'header',   'html', 'meta', 'head','input', 'script',   ]
+blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 
 #TODO: accept URL to fetch book directly from project gutenberg
 try:
