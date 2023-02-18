@@ -67,8 +67,8 @@ tts = TTS(model_name)
 
 for i in range(len(chapters_to_read)):
     text=chap2text(chapters_to_read[i])
-    outputwav=str(i+1)+"-"+bookname.split(".")[0]+".wav"
-    outputmp3=str(i+1)+"-"+bookname.split(".")[0]+".mp3"
+    outputwav=bookname.split(".")[0]+"-"+str(i+1)+".wav"
+    outputmp3=bookname.split(".")[0]+"-"+str(i+1)+".mp3"
     tts.tts_to_file(text=chapters_to_read[i], speaker='p307', file_path=outputwav)
     #Seems TTS can only output in wav? convert to mp3 aftwarwards
     wav = AudioSegment.from_file(outputwav)
