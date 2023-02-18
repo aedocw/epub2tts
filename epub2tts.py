@@ -17,7 +17,6 @@ import subprocess
 import pydub
 from pydub import AudioSegment
 
-#From https://github.com/coqui-ai/TTS
 from TTS.api import TTS
 model_name = "tts_models/en/vctk/vits"
 
