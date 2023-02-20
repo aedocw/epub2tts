@@ -10,7 +10,7 @@ For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
 
 ```
 #clone the repo
-git clone https://gitbub.com/aedocw/epub2tts
+git clone https://github.com/aedocw/epub2tts
 #create a virtual environment
 python3 -m venv epub2tts
 cd epub2tts
