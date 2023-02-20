@@ -17,7 +17,7 @@ cd epub2tts
 #activate the virtual environment
 source bin/activate
 #install dependencies
-sudo apt install espeak-ng
+sudo apt install espeak-ng ffmpeg
 pip3 install -r requirements.txt
 ```
 
