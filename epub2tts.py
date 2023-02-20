@@ -62,10 +62,8 @@ for i in range(len(chapters)):
 
 print("Number of chapters to read: " + str(len(chapters_to_read)))
 
-# Init TTS
-tts = TTS(model_name)
-
 for i in range(len(chapters_to_read)):
+    tts = TTS(model_name)
     text=chap2text(chapters_to_read[i])
     outputwav=bookname.split(".")[0]+"-"+str(i+1)+".wav"
     outputmp3=bookname.split(".")[0]+"-"+str(i+1)+".mp3"
