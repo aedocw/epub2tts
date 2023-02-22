@@ -47,8 +47,10 @@ for item in book.get_items():
 
 chapters_to_read = []
 for i in range(len(chapters)):
+    #strip some characters that might have caused TTS to choke
+    text = text.translate({ord(c): None for c in '[]'})
     text=chap2text(chapters[i])
-    if len(text) < 10:
+    if len(text) < 150:
         #too short to bother with
         continue
     outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
@@ -56,7 +58,17 @@ for i in range(len(chapters)):
     print(text[:256])
     include = input("\nInclude? (y/n/q): ")
     if include == 'y':
-        chapters_to_read.append(text)
+        if len(text) > 100000:
+            #too long, split in four
+            #TODO: Find what size actually causes problems, and chunk this up
+            #into appropriate sizes rather than just blindly chopping into 1/4ths
+            q = len(text)//4
+            chapters_to_read.append(text[:q])
+            chapters_to_read.append(text[q:q*2])
+            chapters_to_read.append(text[q*2:q*3])
+            chapters_to_read.append(text[q*3:])
+        else:
+            chapters_to_read.append(text)
     if include == 'q':
         break
 
@@ -67,6 +79,7 @@ for i in range(len(chapters_to_read)):
     text=chap2text(chapters_to_read[i])
     outputwav=bookname.split(".")[0]+"-"+str(i+1)+".wav"
     outputmp3=bookname.split(".")[0]+"-"+str(i+1)+".mp3"
+    print("Reading " + str(i))
     tts.tts_to_file(text=chapters_to_read[i], speaker='p307', file_path=outputwav)
     #Seems TTS can only output in wav? convert to mp3 aftwarwards
     wav = AudioSegment.from_file(outputwav)
