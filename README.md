@@ -11,11 +11,11 @@ For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
 ```
 #clone the repo
 git clone https://github.com/aedocw/epub2tts
-#create a virtual environment
-python3 -m venv epub2tts
 cd epub2tts
+#create a virtual environment
+python3 -m venv .venv
 #activate the virtual environment
-source bin/activate
+source .venv/bin/activate
 #install dependencies
 sudo apt install espeak-ng ffmpeg
 pip3 install -r requirements.txt
