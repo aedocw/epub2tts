@@ -51,8 +51,8 @@ for item in book.get_items():
 chapters_to_read = []
 for i in range(len(chapters)):
     #strip some characters that might have caused TTS to choke
-    text = text.translate({ord(c): None for c in '[]'})
     text=chap2text(chapters[i])
+    text = text.translate({ord(c): None for c in '[]'})
     if len(text) < 150:
         #too short to bother with
         continue
