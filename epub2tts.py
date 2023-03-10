@@ -23,6 +23,9 @@ model_name = "tts_models/en/vctk/vits"
 def chap2text(chap):
     output = ''
     soup = BeautifulSoup(chap, 'html.parser')
+    #Remove everything that is an href
+    for a in soup.findAll('a', href=True):
+        a.extract()
     text = soup.find_all(text=True)
     for t in text:
         if t.parent.name not in blacklist:
