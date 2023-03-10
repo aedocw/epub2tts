@@ -23,6 +23,9 @@ model_name = "tts_models/en/vctk/vits"
 def chap2text(chap):
     output = ''
     soup = BeautifulSoup(chap, 'html.parser')
+    #Remove everything that is an href
+    for a in soup.findAll('a', href=True):
+        a.extract()
     text = soup.find_all(text=True)
     for t in text:
         if t.parent.name not in blacklist:
@@ -48,8 +51,8 @@ for item in book.get_items():
 chapters_to_read = []
 for i in range(len(chapters)):
     #strip some characters that might have caused TTS to choke
-    text = text.translate({ord(c): None for c in '[]'})
     text=chap2text(chapters[i])
+    text = text.translate({ord(c): None for c in '[]'})
     if len(text) < 150:
         #too short to bother with
         continue
