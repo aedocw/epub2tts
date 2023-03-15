@@ -59,21 +59,17 @@ for i in range(len(chapters)):
     outputwav=str(i)+"-"+bookname.split(".")[0]+".wav"
     print(outputwav + " Length: " + str(len(text)))
     print(text[:256])
-    include = input("\nInclude? (y/n/q): ")
-    if include == 'y':
-        if len(text) > 100000:
-            #too long, split in four
-            #TODO: Find what size actually causes problems, and chunk this up
-            #into appropriate sizes rather than just blindly chopping into 1/4ths
-            q = len(text)//4
-            chapters_to_read.append(text[:q])
-            chapters_to_read.append(text[q:q*2])
-            chapters_to_read.append(text[q*2:q*3])
-            chapters_to_read.append(text[q*3:])
-        else:
-            chapters_to_read.append(text)
-    if include == 'q':
-        break
+    if len(text) > 100000:
+        #too long, split in four
+        #TODO: Find what size actually causes problems, and chunk this up
+        #into appropriate sizes rather than just blindly chopping into 1/4ths
+        q = len(text)//4
+        chapters_to_read.append(text[:q])
+        chapters_to_read.append(text[q:q*2])
+        chapters_to_read.append(text[q*2:q*3])
+        chapters_to_read.append(text[q*3:])
+    else:
+        chapters_to_read.append(text)
 
 print("Number of chapters to read: " + str(len(chapters_to_read)))
 
