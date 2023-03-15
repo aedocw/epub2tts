@@ -7,7 +7,7 @@ I recognize this is not very user friendly, but I wanted to share in case folks 
 ## Docker usage:
 Voice models will be saved locally in `~/.local/share/tts`
 
-Change to directory containning your epub and run with:
+Change to directory containing your epub and run with:
 ```
 docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" -e BOOK=your-book.epub ghcr.io/aedocw/epub2tts:release
 ```
