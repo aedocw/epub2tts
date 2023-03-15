@@ -1,10 +1,12 @@
 FROM ubuntu:latest
 
-ADD requirements.txt .
-ADD epub2tts.py .
+ENV BOOK=mybook.epub
 
-RUN apt-get update && sudo apt install espeak-ng ffmpeg
-RUN pip3 install -r requirements.txt
+RUN mkdir /opt/epub2tts && \
+          apt-get update && \
+          apt -y install espeak-ng ffmpeg python3 python3-pip
+ADD requirements.txt /opt/epub2tts/.
+ADD epub2tts.py /opt/epub2tts/.
+RUN pip3 install -r /opt/epub2tts/requirements.txt
 
-ENTRYPOINT ["python"]
-CMD ["./epub2tts.py", "$1"]
+CMD python3 /opt/epub2tts/epub2tts.py ${BOOK}
