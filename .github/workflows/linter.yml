@@ -18,8 +18,9 @@ on:
   push:
     #branches-ignore: [master, main]
     # Remove the line above to run when pushing to master
+    branches: [main]
   pull_request:
-    branches: [master, main]
+    branches: [main]
 
 ###############
 # Set the Job #

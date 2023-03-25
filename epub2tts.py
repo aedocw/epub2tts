@@ -16,8 +16,8 @@ import sys
 import subprocess
 import pydub
 from pydub import AudioSegment
-
 from TTS.api import TTS
+
 model_name = "tts_models/en/vctk/vits"
 
 def chap2text(chap):
@@ -51,7 +51,7 @@ for item in book.get_items():
 chapters_to_read = []
 for i in range(len(chapters)):
     #strip some characters that might have caused TTS to choke
-    text=chap2text(chapters[i])
+    text = chap2text(chapters[i])
     text = text.translate({ord(c): None for c in '[]'})
     if len(text) < 150:
         #too short to bother with
