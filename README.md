@@ -30,3 +30,13 @@ pip3 install -r requirements.txt
 ```
 
 Usage: `python3 epub2tts.py my-book.epub`
+
+## NOTE:
+
+It may be convenient to combine the resulting multiple mp3 files into a single mp3 after deleting the files you don't want (like the copyright page, table of contents, index etc). You can use a quick bash loop and ffmpeg to do this.
+
+```
+for f in *.mp3; do echo "file '$f'" >> mylist.txt; done
+#edit mylist.txt to confirm the files are in the right order
+ffmpeg -f concat -safe 0 -i mylist.txt -c copy my-book.mp3
+```
