@@ -21,6 +21,7 @@ from TTS.api import TTS
 
 
 model_name = "tts_models/en/vctk/vits"
+blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 
 def chap2text(chap):
     output = ''
@@ -35,62 +36,65 @@ def chap2text(chap):
     return output
 
 
-blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
+def main():
 
-# TODO: accept URL to fetch book directly from project gutenberg
-try:
-    bookname = sys.argv[1]
-except:
-    print("Please specify epub to read as first argument")
-    sys.exit()
+    # TODO: accept URL to fetch book directly from project gutenberg
+    try:
+        bookname = sys.argv[1]
+    except:
+        print("Please specify epub to read as first argument")
+        sys.exit()
 
-book = epub.read_epub(bookname)
+    book = epub.read_epub(bookname)
 
-chapters = []
-for item in book.get_items():
-    if item.get_type() == ebooklib.ITEM_DOCUMENT:
-        chapters.append(item.get_content())
+    chapters = []
+    for item in book.get_items():
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            chapters.append(item.get_content())
 
-chapters_to_read = []
-for i in range(len(chapters)):
-    #strip some characters that might have caused TTS to choke
-    text = chap2text(chapters[i])
-    text = text.translate({ord(c): None for c in '[]'})
-    if len(text) < 150:
-        #too short to bother with
-        continue
-    outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
-    print(outputwav + " Length: " + str(len(text)))
-    print(text[:256])
-    if len(text) > 100000:
-        # too long, split in four
-        # TODO: Find what size actually causes problems, and chunk this up
-        # into appropriate sizes rather than just blindly chopping into 1/4ths
-        q = len(text)//4
-        chapters_to_read.append(text[:q])
-        chapters_to_read.append(text[q:q*2])
-        chapters_to_read.append(text[q*2:q*3])
-        chapters_to_read.append(text[q*3:])
-    else:
-        chapters_to_read.append(text)
+    chapters_to_read = []
+    for i in range(len(chapters)):
+        #strip some characters that might have caused TTS to choke
+        text = chap2text(chapters[i])
+        text = text.translate({ord(c): None for c in '[]'})
+        if len(text) < 150:
+            #too short to bother with
+            continue
+        outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
+        print(outputwav + " Length: " + str(len(text)))
+        print(text[:256])
+        if len(text) > 100000:
+            # too long, split in four
+            # TODO: Find what size actually causes problems, and chunk this up
+            # into appropriate sizes rather than just blindly chopping into 1/4ths
+            q = len(text)//4
+            chapters_to_read.append(text[:q])
+            chapters_to_read.append(text[q:q*2])
+            chapters_to_read.append(text[q*2:q*3])
+            chapters_to_read.append(text[q*3:])
+        else:
+            chapters_to_read.append(text)
 
-print("Number of chapters to read: " + str(len(chapters_to_read)))
+    print("Number of chapters to read: " + str(len(chapters_to_read)))
 
-files = []
-for i in range(len(chapters_to_read)):
-    tts = TTS(model_name)
-    text = chap2text(chapters_to_read[i])
-    outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
-    print("Reading " + str(i))
-    # Seems TTS can only output in wav? convert to mp3 aftwarwards
-    tts.tts_to_file(text = chapters_to_read[i], speaker='p335', file_path = outputwav)
-    files.append(outputwav)
+    files = []
+    for i in range(len(chapters_to_read)):
+        tts = TTS(model_name)
+        text = chap2text(chapters_to_read[i])
+        outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
+        print("Reading " + str(i))
+        # Seems TTS can only output in wav? convert to mp3 aftwarwards
+        tts.tts_to_file(text = chapters_to_read[i], speaker='p335', file_path = outputwav)
+        files.append(outputwav)
 
-#Load all WAV files and concatenate into one mp3
-wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
-concatenated = sum(wav_files)
-outputmp3=bookname.split(".")[0]+".mp3"
-concatenated.export(outputmp3, format="mp3")
-#cleanup, delete the wav files we no longer need
-for f in files:
-    os.remove(f)
+    #Load all WAV files and concatenate into one mp3
+    wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+    concatenated = sum(wav_files)
+    outputmp3=bookname.split(".")[0]+".mp3"
+    concatenated.export(outputmp3, format="mp3")
+    #cleanup, delete the wav files we no longer need
+    for f in files:
+        os.remove(f)
+
+if __name__ == '__main__':
+    main()
