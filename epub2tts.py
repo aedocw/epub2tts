@@ -9,10 +9,12 @@
 # of content up front that you don't want read to you.
 # Output will be mp3's for each chapter, read by Coqui TTS: https://github.com/coqui-ai/TTS
 
+import os
 import sys
-import subprocess
+
 
 from bs4 import BeautifulSoup
+import ebooklib
 from ebooklib import epub
 from pydub import AudioSegment
 from TTS.api import TTS
@@ -74,14 +76,21 @@ for i in range(len(chapters)):
 
 print("Number of chapters to read: " + str(len(chapters_to_read)))
 
+files = []
 for i in range(len(chapters_to_read)):
     tts = TTS(model_name)
     text = chap2text(chapters_to_read[i])
     outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
-    outputmp3 = bookname.split(".")[0]+"-"+str(i+1)+".mp3"
     print("Reading " + str(i))
-    tts.tts_to_file(text = chapters_to_read[i], speaker='p335', file_path = outputwav)
     # Seems TTS can only output in wav? convert to mp3 aftwarwards
-    wav = AudioSegment.from_file(outputwav)
-    wav.export(outputmp3, format = "mp3")
-    subprocess.call(['rm', '-f', outputwav])
+    tts.tts_to_file(text = chapters_to_read[i], speaker='p335', file_path = outputwav)
+    files.append(outputwav)
+
+#Load all WAV files and concatenate into one mp3
+wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+concatenated = sum(wav_files)
+outputmp3=bookname.split(".")[0]+".mp3"
+concatenated.export(outputmp3, format="mp3")
+#cleanup, delete the wav files we no longer need
+for f in files:
+    os.remove(f)
