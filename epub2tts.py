@@ -21,6 +21,7 @@ from TTS.api import TTS
 
 
 model_name = "tts_models/en/vctk/vits"
+blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 
 def chap2text(chap):
     output = ''
@@ -34,8 +35,8 @@ def chap2text(chap):
             output += '{} '.format(t)
     return output
 
+
 def main():
-    blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 
     # TODO: accept URL to fetch book directly from project gutenberg
     try:
