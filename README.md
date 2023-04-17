@@ -3,11 +3,11 @@ This script takes an epub and reads it to an mp3, using TTS by https://github.co
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
 ## MAC INSTALLATION:
-This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, pyenv and ffmpeg).
+This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, pyenv and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
 ```
 #install dependencies
-brew install espeak pyenv ffmpeg
+brew install espeak pyenv ffmpeg mecab
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pyenv install 3.10.11
