@@ -8,6 +8,7 @@ This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use h
 ```
 #install dependencies
 brew install espeak pyenv ffmpeg mecab
+#install epub2tts
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pyenv install 3.10.11
@@ -49,7 +50,7 @@ For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 #create a virtual environment
-python3 -m venv .venv
+python -m venv .venv
 #activate the virtual environment
 source .venv/bin/activate
 #install dependencies
@@ -57,4 +58,4 @@ sudo apt install espeak-ng ffmpeg
 pip install -r requirements.txt
 ```
 
-Usage: `python3 epub2tts.py my-book.epub`
+Usage: `python epub2tts.py my-book.epub`
