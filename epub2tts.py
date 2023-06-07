@@ -43,6 +43,7 @@ def main():
         bookname = sys.argv[1]
     except:
         print("Please specify epub to read as first argument")
+        print("Optionally, add a second argument specifying speaker to use")
         sys.exit()
 
     book = epub.read_epub(bookname)
@@ -78,19 +79,27 @@ def main():
     print("Number of chapters to read: " + str(len(chapters_to_read)))
 
     files = []
+    # check for optional speaker parameter
+    speakers = ["p261", "p225", "p294", "p347", "p238", "p234", "p248", "p335", "p245", "p326","p302"]
+    speaker_used = "p335"
+    if len(sys.argv) >= 3:
+        speaker_param = sys.argv[2]
+        if speaker_param in speakers:
+            speaker_used = speaker_param
+
     for i in range(len(chapters_to_read)):
         tts = TTS(model_name)
         text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
         # Seems TTS can only output in wav? convert to mp3 aftwarwards
-        tts.tts_to_file(text = chapters_to_read[i], speaker='p335', file_path = outputwav)
+        tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
 
     #Load all WAV files and concatenate into one mp3
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
     concatenated = sum(wav_files)
-    outputmp3=bookname.split(".")[0]+".mp3"
+    outputmp3=bookname.split(".")[0]+"-"+speaker_used+".mp3"
     concatenated.export(outputmp3, format="mp3")
     #cleanup, delete the wav files we no longer need
     for f in files:
