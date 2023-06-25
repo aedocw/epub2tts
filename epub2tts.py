@@ -80,7 +80,7 @@ def main():
 
     files = []
     # check for optional speaker parameter
-    speakers = ["p261", "p225", "p294", "p347", "p238", "p234", "p248", "p335", "p245", "p326","p302"]
+    speakers = ["p261", "p225", "p294", "p347", "p238", "p234", "p248", "p335", "p245", "p326", "p302", "p256]
     speaker_used = "p335"
     if len(sys.argv) >= 3:
         speaker_param = sys.argv[2]
