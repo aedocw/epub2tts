@@ -58,4 +58,8 @@ sudo apt install espeak-ng ffmpeg
 pip install -r requirements.txt
 ```
 
-Usage: `python epub2tts.py my-book.epub`
+Usage: `python epub2tts.py --book my-book.epub`
+
+To change speaker (ex p256), add: `--speaker p256`
+
+To skip reading any links, add: `--skip-links`
