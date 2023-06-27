@@ -40,9 +40,10 @@ def chap2text(chap):
 
 def main():
     # TODO: accept URL to fetch book directly from project gutenberg
-    bookname = [s for s in sys.argv if ".epub" in s]
+    booklist = [s for s in sys.argv if ".epub" in s]
 
-    if bookname != []:
+    if len(booklist) > 0:
+        bookname = booklist[0]
         print(f"Book filename: {bookname}")
     else:
         print("Please specify epub to read")
