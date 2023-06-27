@@ -19,6 +19,10 @@ pip install .
 ```
 Usage: `epub2tts my-book.epub`
 
+To change speaker (ex p256), add: `--speaker p256`
+
+To skip reading any links, add: `--skip-links`
+
 ## LINUX INSTALLATION:
 
 For  now I've only tested this on a linux machine (Ubuntu 22 in my case). Ensure you have `ffmpeg` installed before use.
@@ -33,6 +37,10 @@ pip install .
 ```
 
 Usage: `epub2tts my-book.epub`
+
+To change speaker (ex p256), add: `--speaker p256`
+
+To skip reading any links, add: `--skip-links`
 
 ## Docker usage:
 Voice models will be saved locally in `~/.local/share/tts`
