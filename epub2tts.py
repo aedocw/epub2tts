@@ -23,12 +23,14 @@ from TTS.api import TTS
 model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 
+
 def chap2text(chap):
     output = ''
     soup = BeautifulSoup(chap, 'html.parser')
-    # Remove everything that is an href
-    for a in soup.findAll('a', href=True):
-        a.extract()
+    if "--skip-links" in sys.argv:
+        # Remove everything that is an href
+        for a in soup.findAll('a', href=True):
+            a.extract()
     text = soup.find_all(text=True)
     for t in text:
         if t.parent.name not in blacklist:
@@ -37,14 +39,22 @@ def chap2text(chap):
 
 
 def main():
-
     # TODO: accept URL to fetch book directly from project gutenberg
-    try:
-        bookname = sys.argv[1]
-    except:
-        print("Please specify epub to read as first argument")
-        print("Optionally, add a second argument specifying speaker to use")
+    if "--book" in sys.argv:
+        index = sys.argv.index("--book")
+        bookname = sys.argv[index + 1]
+        print(f"Book filename: {bookname}")
+    else:
+        print("Please specify epub to read after --book argument")
         sys.exit()
+
+    if "--speaker" in sys.argv:
+        index = sys.argv.index("--speaker")
+        speaker_used = sys.argv[index + 1]    
+    else:
+        speaker_used = "p335"
+
+    print(f"Speaker: {speaker_used}")
 
     book = epub.read_epub(bookname)
 
@@ -79,16 +89,9 @@ def main():
     print("Number of chapters to read: " + str(len(chapters_to_read)))
 
     files = []
-    # check for optional speaker parameter
-    speakers = ["p261", "p225", "p294", "p347", "p238", "p234", "p248", "p335", "p245", "p326", "p302", "p256"]
-    speaker_used = "p335"
-    if len(sys.argv) >= 3:
-        speaker_param = sys.argv[2]
-        if speaker_param in speakers:
-            speaker_used = speaker_param
 
     for i in range(len(chapters_to_read)):
-        tts = TTS(model_name)
+        tts = TTS(model_name)        
         text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
