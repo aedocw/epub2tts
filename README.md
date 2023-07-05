@@ -2,6 +2,17 @@ This script takes an epub and reads it to an mp3, using TTS by https://github.co
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
+## USAGE:
+Usage: `epub2tts my-book.epub`
+
+To change speaker (ex p256), add: `--speaker p256`
+
+To skip reading any links, add: `--skip-links`
+
+To specify which chapter to start on (ex 3): `--start 3`
+
+To specify which chapter to end on (ex 20): `--end 20`
+
 ## MAC INSTALLATION:
 This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
@@ -17,11 +28,6 @@ pyenv local 3.10.11
 python -m venv .venv && source .venv/bin/activate
 pip install .
 ```
-Usage: `epub2tts my-book.epub`
-
-To change speaker (ex p256), add: `--speaker p256`
-
-To skip reading any links, add: `--skip-links`
 
 ## LINUX INSTALLATION:
 
@@ -35,12 +41,6 @@ git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pip install .
 ```
-
-Usage: `epub2tts my-book.epub`
-
-To change speaker (ex p256), add: `--speaker p256`
-
-To skip reading any links, add: `--skip-links`
 
 ## Docker usage:
 Voice models will be saved locally in `~/.local/share/tts`
@@ -66,8 +66,3 @@ sudo apt install espeak-ng ffmpeg
 pip install -r requirements.txt
 ```
 
-Usage: `python epub2tts.py my-book.epub`
-
-To change speaker (ex p256), add: `--speaker p256`
-
-To skip reading any links, add: `--skip-links`

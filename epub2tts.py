@@ -91,7 +91,17 @@ def main():
 
     files = []
 
-    for i in range(len(chapters_to_read)):
+    if "--start" in sys.argv:
+        start = int(sys.argv[sys.argv.index("--start") + 1])
+    else:
+        start = 0
+
+    if "--end" in sys.argv:
+        end = int(sys.argv[sys.argv.index("--end") + 1]) + 1
+    else:
+        end = len(chapters_to_read)
+
+    for i in range(start, end):
         tts = TTS(model_name)        
         text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
