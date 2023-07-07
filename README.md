@@ -13,7 +13,7 @@ To specify which chapter to start on (ex 3): `--start 3`
 
 To specify which chapter to end on (ex 20): `--end 20`
 
-Using `--scan` will list excepts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
+Using `--scan` will list excerpts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
 
 ## MAC INSTALLATION:
 This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
