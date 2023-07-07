@@ -74,6 +74,7 @@ def main():
             continue
         outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
         print(outputwav + " Length: " + str(len(text)))
+        print("Chapter: " + str(len(chapters_to_read)+1))
         print(text[:256])
         if len(text) > 100000:
             # too long, split in four
@@ -88,6 +89,9 @@ def main():
             chapters_to_read.append(text)
 
     print("Number of chapters to read: " + str(len(chapters_to_read)))
+
+    if "--scan" in sys.argv:
+        sys.exit()
 
     files = []
 
