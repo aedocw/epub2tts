@@ -96,7 +96,7 @@ def main():
     files = []
 
     if "--start" in sys.argv:
-        start = int(sys.argv[sys.argv.index("--start") + 1])
+        start = int(sys.argv[sys.argv.index("--start") + 1]) - 1
     else:
         start = 0
 
