@@ -101,7 +101,7 @@ def main():
         start = 0
 
     if "--end" in sys.argv:
-        end = int(sys.argv[sys.argv.index("--end") + 1]) + 1
+        end = int(sys.argv[sys.argv.index("--end") + 1])
     else:
         end = len(chapters_to_read)
 
