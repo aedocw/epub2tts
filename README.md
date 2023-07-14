@@ -5,7 +5,7 @@ I recognize this is not very user friendly, but I wanted to share in case folks 
 ## USAGE:
 Usage: `epub2tts my-book.epub`
 
-To change speaker (ex p256), add: `--speaker p256`
+To change speaker (ex p307 for a good male voice), add: `--speaker p307`
 
 To skip reading any links, add: `--skip-links`
 
