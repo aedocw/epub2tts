@@ -118,7 +118,7 @@ def main():
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
     concatenated = sum(wav_files)
     outputmp3=bookname.split(".")[0]+"-"+speaker_used+".mp3"
-    concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0"])
+    concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
     #cleanup, delete the wav files we no longer need
     for f in files:
         os.remove(f)
