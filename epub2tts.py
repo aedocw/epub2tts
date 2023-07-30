@@ -10,7 +10,9 @@
 # Output will be mp3's for each chapter, read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
+import subprocess
 import sys
+import wave
 
 
 from bs4 import BeautifulSoup
@@ -22,6 +24,7 @@ from TTS.api import TTS
 
 model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
+ffmetadatafile = "FFMETADATAFILE"
 
 
 def chap2text(chap):
@@ -36,6 +39,31 @@ def chap2text(chap):
         if t.parent.name not in blacklist:
             output += '{} '.format(t)
     return output
+
+
+def get_wav_duration(file_path):
+    with wave.open(file_path, 'rb') as wav_file:
+        num_frames = wav_file.getnframes()
+        frame_rate = wav_file.getframerate()
+        duration = num_frames / frame_rate
+        duration_milliseconds = duration * 1000
+        return int(duration_milliseconds)
+    
+
+def gen_ffmetadata(files):
+    chap = 1
+    start_time = 0
+    with open(ffmetadatafile, "w") as file:
+        file.write(";FFMETADATA1\n")
+        for file_name in files:
+            duration = get_wav_duration(file_name)
+            file.write("[CHAPTER]\n")
+            file.write("TIMEBASE=1/1000\n")
+            file.write("START=" + str(start_time) + "\n")
+            file.write("END=" + str(start_time + duration) + "\n")
+            file.write("title=Chapter " + str(chap) + "\n")
+            chap += 1
+            start_time += duration
 
 
 def main():
@@ -110,15 +138,25 @@ def main():
         text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
-        # Seems TTS can only output in wav? convert to mp3 aftwarwards
+        # Seems TTS can only output in wav? convert to m4a aftwarwards
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
 
     #Load all WAV files and concatenate into one mp3
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
     concatenated = sum(wav_files)
-    outputmp3=bookname.split(".")[0]+"-"+speaker_used+".mp3"
-    concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
+    if "--chapters" in sys.argv:
+        outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
+        outputm4b = outputm4a.replace("m4a", "m4b")
+        concatenated.export(outputm4a, format="ipod")
+        gen_ffmetadata(files)
+        ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",ffmetadatafile,"-map_metadata","1","-codec","copy",outputm4b]
+        subprocess.run(ffmpeg_command)
+        os.remove(ffmetadatafile)
+        os.remove(outputm4a)
+    else:
+        outputmp3 = bookname.split(".")[0]+"-"+speaker_used+".mp3"
+        concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
     #cleanup, delete the wav files we no longer need
     for f in files:
         os.remove(f)
