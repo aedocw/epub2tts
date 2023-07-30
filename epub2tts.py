@@ -3,11 +3,15 @@
 # and this post which just cleaned up what was in the medium article:
 # https://xwiki.recursos.uoc.edu/wiki/mat00001ca/view/Research%20on%20Translation%20Technologies/Working%20with%20PDF%20files%20using%20Python/
 #
-# This script takes in an epub as only argument, then previews the first 256 characters
-# from each chapter - enter y to include that chapter, n to skip, and q when you are
-# done adding chapters. This preview step is required because most ebooks have a ton
-# of content up front that you don't want read to you.
-# Output will be mp3's for each chapter, read by Coqui TTS: https://github.com/coqui-ai/TTS
+# Usage: `epub2tts my-book.epub`
+# To change speaker (ex p307 for a good male voice), add: `--speaker p307`
+# To output in mp3 format instead of m4b, add: `--mp3`
+# To skip reading any links, add: `--skip-links`
+# Using `--scan` will list excerpts of each chapter, then exit. This is helpful
+# for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
+# To specify which chapter to start on (ex 3): `--start 3`
+# To specify which chapter to end on (ex 20): `--end 20`
+# Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
 import subprocess
@@ -142,10 +146,13 @@ def main():
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
 
-    #Load all WAV files and concatenate into one mp3
+    #Load all WAV files and concatenate into one object
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
     concatenated = sum(wav_files)
-    if "--chapters" in sys.argv:
+    if "--mp3" in sys.argv:
+        outputmp3 = bookname.split(".")[0]+"-"+speaker_used+".mp3"
+        concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
+    else:
         outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
         outputm4b = outputm4a.replace("m4a", "m4b")
         concatenated.export(outputm4a, format="ipod")
@@ -154,9 +161,6 @@ def main():
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
         os.remove(outputm4a)
-    else:
-        outputmp3 = bookname.split(".")[0]+"-"+speaker_used+".mp3"
-        concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
     #cleanup, delete the wav files we no longer need
     for f in files:
         os.remove(f)
