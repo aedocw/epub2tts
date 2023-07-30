@@ -1,4 +1,4 @@
-This script takes an epub and reads it to an mp3, using TTS by https://github.com/coqui-ai/TTS
+This script takes an epub and reads it to an mp3 or an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
@@ -7,7 +7,7 @@ Usage: `epub2tts my-book.epub`
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
 
-To output in m4b format with chapter breaks, add: `--chapters`
+To output in mp3 format instead of m4b, add: `--mp3`
 
 To skip reading any links, add: `--skip-links`
 
@@ -21,6 +21,7 @@ To specify which chapter to end on (ex 20): `--end 20`
 ## MAC INSTALLATION:
 This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
+Voice models will be saved locally in `~/.local/share/tts`
 ```
 #install dependencies
 brew install espeak pyenv ffmpeg mecab
@@ -37,6 +38,8 @@ pip install .
 ## LINUX INSTALLATION:
 
 For  now I've only tested this on a linux machine (Ubuntu 22 in my case). Ensure you have `ffmpeg` installed before use.
+
+Voice models will be saved locally in `~/.local/share/tts`
 
 ```
 #install dependencies
