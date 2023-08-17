@@ -65,7 +65,7 @@ def gen_ffmetadata(files):
             file.write("TIMEBASE=1/1000\n")
             file.write("START=" + str(start_time) + "\n")
             file.write("END=" + str(start_time + duration) + "\n")
-            file.write("title=Chapter " + str(chap) + "\n")
+            file.write("title=Part " + str(chap) + "\n")
             chap += 1
             start_time += duration
 
