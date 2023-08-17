@@ -17,6 +17,12 @@ To specify which chapter to start on (ex 3): `--start 3`
 
 To specify which chapter to end on (ex 20): `--end 20`
 
+## DOCKER INSTALLATION:
+Voice models will be saved locally in `~/.local/share/tts`
+
+```
+alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
+```
 
 ## MAC INSTALLATION:
 This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
@@ -50,13 +56,6 @@ cd epub2tts
 pip install .
 ```
 
-## Docker usage:
-Voice models will be saved locally in `~/.local/share/tts`
-
-Change to directory containing your epub and run with:
-```
-docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" -e BOOK=your-book.epub ghcr.io/aedocw/epub2tts:release
-```
 ## DEVELOPMENT INSTALL:
 
 For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
