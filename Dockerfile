@@ -9,4 +9,6 @@ ADD requirements.txt /opt/epub2tts/.
 ADD epub2tts.py /opt/epub2tts/.
 RUN pip3 install -r /opt/epub2tts/requirements.txt
 
-CMD python3 /opt/epub2tts/epub2tts.py ${BOOK}
+ENTRYPOINT ["python3", "/opt/epub2tts/epub2tts.py"]
+
+CMD ["--help"]
