@@ -153,12 +153,13 @@ def main():
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
         position += len(chapters_to_read[i])
-        print(f"{(position / total_chars) * 100}% spoken so far.\n")
+        percentage = (position / total_chars) *100
+        print(f"{percentage:.2f}% spoken so far.\n")
         elapsed_time = time.time() - start_time
         chars_remaining = total_chars - position
         estimated_total_time = elapsed_time / position * total_chars
         estimated_time_remaining = estimated_total_time - elapsed_time
-        print(f"Estimated time to 100%: {(estimated_time_remaining) / 60} minutes \n")
+        print(f"Estimated time to 100%: {int((estimated_time_remaining) / 60)} minutes \n")
 
 
     #Load all WAV files and concatenate into one object
