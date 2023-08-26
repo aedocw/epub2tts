@@ -101,7 +101,7 @@ def main():
     for i in range(len(chapters)):
         #strip some characters that might have caused TTS to choke
         text = chap2text(chapters[i])
-        text = text.translate({ord(c): None for c in '[]'})
+        text = text.translate({ord(c): None for c in '[]*'})
         if len(text) < 150:
             #too short to bother with
             continue
