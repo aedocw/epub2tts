@@ -159,6 +159,7 @@ def main():
         chars_remaining = total_chars - position
         estimated_total_time = elapsed_time / position * total_chars
         estimated_time_remaining = estimated_total_time - elapsed_time
+        print(f"Elapsed time: {int(elapsed / 60)} minutes \n")
         print(f"Estimated time to 100%: {int((estimated_time_remaining) / 60)} minutes \n")
 
 
