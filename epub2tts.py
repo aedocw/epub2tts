@@ -39,7 +39,7 @@ def chap2text(chap):
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
             a.extract()
-    text = soup.find_all(text=True)
+    text = soup.find_all(string=True)
     for t in text:
         if t.parent.name not in blacklist:
             output += '{} '.format(t)
@@ -107,7 +107,7 @@ def main():
             continue
         outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
         print(outputwav + " Length: " + str(len(text)))
-        print("Chapter: " + str(len(chapters_to_read)+1))
+        print("Part: " + str(len(chapters_to_read)+1))
         print(text[:256])
         if len(text) > 100000:
             # too long, split in four
