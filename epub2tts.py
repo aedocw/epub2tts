@@ -16,6 +16,7 @@
 import os
 import subprocess
 import sys
+import time
 import wave
 
 
@@ -137,6 +138,12 @@ def main():
     else:
         end = len(chapters_to_read)
 
+    total_chars = 0
+    position = 0
+    for i in range(start, end):
+        total_chars += len(chapters_to_read[i])
+    start_time = time.time()
+
     for i in range(start, end):
         tts = TTS(model_name)        
         text = chap2text(chapters_to_read[i])
@@ -145,6 +152,14 @@ def main():
         # Seems TTS can only output in wav? convert to m4a aftwarwards
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
+        position += len(chapters_to_read[i])
+        print(f"{(position / total_chars) * 100}% spoken so far.\n")
+        elapsed_time = time.time() - start_time
+        chars_remaining = total_chars - position
+        estimated_total_time = elapsed_time / position * total_chars
+        estimated_time_remaining = estimated_total_time - elapsed_time
+        print(f"Estimated time to 100%: {(estimated_time_remaining) / 60} minutes \n")
+
 
     #Load all WAV files and concatenate into one object
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
