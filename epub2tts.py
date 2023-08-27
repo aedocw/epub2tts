@@ -109,17 +109,13 @@ def main():
         print(outputwav + " Length: " + str(len(text)))
         print("Part: " + str(len(chapters_to_read)+1))
         print(text[:256])
-        if len(text) > 100000:
-            # too long, split in four
-            # TODO: Find what size actually causes problems, and chunk this up
-            # into appropriate sizes rather than just blindly chopping into 1/4ths
-            q = len(text)//4
-            chapters_to_read.append(text[:q])
-            chapters_to_read.append(text[q:q*2])
-            chapters_to_read.append(text[q*2:q*3])
-            chapters_to_read.append(text[q*3:])
-        else:
-            chapters_to_read.append(text)
+        # split sections that are too large for TTS, break on spaces
+        max_len = 30000
+        while len(text) > max_len:
+            pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
+            chapters_to_read.append(text[:pos])
+            text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
+        chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
 
     print("Number of chapters to read: " + str(len(chapters_to_read)))
 
