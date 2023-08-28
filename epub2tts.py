@@ -31,6 +31,21 @@ model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 ffmetadatafile = "FFMETADATAFILE"
 
+usage = """
+Usage: epub2tts my-book.epub
+
+Adding --scan will list excerpts of each chapter, then exit. This is
+helpful for finding which chapter to start and end on if you want to
+skip TOC, bibliography, etc.
+
+To change speaker (ex p307 for a good male voice), add: --speaker p307
+To output in mp3 format instead of m4b, add: --mp3
+To skip reading any links, add: --skip-links
+
+To specify which chapter to start on (ex 3): --start 3
+To specify which chapter to end on (ex 20): --end 20
+"""
+
 
 def chap2text(chap):
     output = ''
@@ -79,7 +94,7 @@ def main():
         bookname = booklist[0]
         print(f"Book filename: {bookname}")
     else:
-        print("Please specify epub to read")
+        print(usage)
         sys.exit()
 
     if "--speaker" in sys.argv:
@@ -110,11 +125,13 @@ def main():
         print("Part: " + str(len(chapters_to_read)+1))
         print(text[:256])
         # split sections that are too large for TTS, break on spaces
-        max_len = 30000
-        while len(text) > max_len:
-            pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
-            chapters_to_read.append(text[:pos])
-            text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
+        # but commenting out for now because I don't think this is necessary
+        # rather, it's SENTENCES that are too long that cause it to choke
+        #max_len = 100000
+        #while len(text) > max_len:
+        #    pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
+        #    chapters_to_read.append(text[:pos])
+        #    text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
         chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
 
     print("Number of chapters to read: " + str(len(chapters_to_read)))
@@ -140,12 +157,11 @@ def main():
         total_chars += len(chapters_to_read[i])
     start_time = time.time()
 
+    tts = TTS(model_name)
     for i in range(start, end):
-        tts = TTS(model_name)        
-        text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
-        # Seems TTS can only output in wav? convert to m4a aftwarwards
+        # Seems TTS can only output in wav? convert to m4b aftwarwards
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
         position += len(chapters_to_read[i])
