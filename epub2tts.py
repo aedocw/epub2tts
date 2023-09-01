@@ -132,8 +132,7 @@ def get_chapters_text(bookname):
     chapters_to_read = []
     with open(bookname, 'r') as file:
         text = file.read()
-    #max_len = 50000
-    max_len = 1000
+    max_len = 50000
     while len(text) > max_len:
         pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
         chapters_to_read.append(text[:pos])
