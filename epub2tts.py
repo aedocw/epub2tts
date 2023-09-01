@@ -85,10 +85,10 @@ def gen_ffmetadata(files):
             start_time += duration
 
 def get_bookname():
-    booklist = [s for s in sys.argv if ".epub" in s]
-
-    if len(booklist) > 0:
-        bookname = booklist[0]
+    for i, arg in enumerate(sys.argv):
+        if arg.endswith('.txt') or arg.endswith('.epub'):
+            bookname = arg
+    if len(bookname) > 0:
         print(f"Book filename: {bookname}")
         return(bookname)
     else:
@@ -104,7 +104,7 @@ def get_speaker():
     print(f"Speaker: {speaker_used}")
     return(speaker_used)
 
-def get_chapters(book, bookname):
+def get_chapters_epub(book, bookname):
     chapters = []
     for item in book.get_items():
         if item.get_type() == ebooklib.ITEM_DOCUMENT:
@@ -122,18 +122,24 @@ def get_chapters(book, bookname):
         print(outputwav + " Length: " + str(len(text)))
         print("Part: " + str(len(chapters_to_read)+1))
         print(text[:256])
-        # split sections that are too large for TTS, break on spaces
-        # but commenting out for now because I don't think this is necessary
-        # rather, it's SENTENCES that are too long that cause it to choke
-        #max_len = 100000
-        #while len(text) > max_len:
-        #    pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
-        #    chapters_to_read.append(text[:pos])
-        #    text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
         chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
     print("Number of chapters to read: " + str(len(chapters_to_read)))
     if "--scan" in sys.argv:
         sys.exit()
+    return(chapters_to_read)
+
+def get_chapters_text(bookname):
+    chapters_to_read = []
+    with open(bookname, 'r') as file:
+        text = file.read()
+    max_len = 50000
+    while len(text) > max_len:
+        pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
+        chapters_to_read.append(text[:pos])
+        print("Part: " + str(len(chapters_to_read)))
+        print(str(chapters_to_read[-1])[:256])
+        text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
+    chapters_to_read.append(text)
     return(chapters_to_read)
 
 def get_length(start, end, chapters_to_read):
@@ -150,7 +156,7 @@ def get_start():
         start = 0
     return(start)
 
-def get_end():
+def get_end(chapters_to_read):
 # There are definitely better ways to handle arguments, this should be fixed
     if "--end" in sys.argv:
         end = int(sys.argv[sys.argv.index("--end") + 1])
@@ -159,12 +165,17 @@ def get_end():
     return(end)
 
 def main():
-    bookname = get_bookname()
+    bookname = get_bookname() #will detect only .txt or .epub
+    booktype = bookname.split('.')[-1]
     speaker_used = get_speaker()
-    book = epub.read_epub(bookname)
-    chapters_to_read = get_chapters(book, bookname)
+    if booktype == "epub":
+        book = epub.read_epub(bookname)
+        chapters_to_read = get_chapters_epub(book, bookname)
+    else: #book is text, hopefully
+        print("Detected TEXT for file type, --scan, --start and --end will be ignored")
+        chapters_to_read = get_chapters_text(bookname)
     start = get_start()
-    end = get_end()
+    end = get_end(chapters_to_read)
     total_chars = get_length(start, end, chapters_to_read)
     files = []
     position = 0
