@@ -46,7 +46,6 @@ To specify which chapter to start on (ex 3): --start 3
 To specify which chapter to end on (ex 20): --end 20
 """
 
-
 def chap2text(chap):
     output = ''
     soup = BeautifulSoup(chap, 'html.parser')
@@ -85,28 +84,27 @@ def gen_ffmetadata(files):
             chap += 1
             start_time += duration
 
-
-def main():
-    # TODO: accept URL to fetch book directly from project gutenberg
+def get_bookname():
     booklist = [s for s in sys.argv if ".epub" in s]
 
     if len(booklist) > 0:
         bookname = booklist[0]
         print(f"Book filename: {bookname}")
+        return(bookname)
     else:
         print(usage)
         sys.exit()
 
+def get_speaker():
     if "--speaker" in sys.argv:
         index = sys.argv.index("--speaker")
         speaker_used = sys.argv[index + 1]    
     else:
         speaker_used = "p335"
-
     print(f"Speaker: {speaker_used}")
+    return(speaker_used)
 
-    book = epub.read_epub(bookname)
-
+def get_chapters(book, bookname):
     chapters = []
     for item in book.get_items():
         if item.get_type() == ebooklib.ITEM_DOCUMENT:
@@ -133,30 +131,44 @@ def main():
         #    chapters_to_read.append(text[:pos])
         #    text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
         chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
-
     print("Number of chapters to read: " + str(len(chapters_to_read)))
-
     if "--scan" in sys.argv:
         sys.exit()
+    return(chapters_to_read)
 
-    files = []
+def get_length(start, end, chapters_to_read):
+    total_chars = 0
+    for i in range(start, end):
+        total_chars += len(chapters_to_read[i])
+    return(total_chars)
 
+def get_start():
+# There are definitely better ways to handle arguments, this should be fixed
     if "--start" in sys.argv:
         start = int(sys.argv[sys.argv.index("--start") + 1]) - 1
     else:
         start = 0
+    return(start)
 
+def get_end():
+# There are definitely better ways to handle arguments, this should be fixed
     if "--end" in sys.argv:
         end = int(sys.argv[sys.argv.index("--end") + 1])
     else:
         end = len(chapters_to_read)
+    return(end)
 
-    total_chars = 0
+def main():
+    bookname = get_bookname()
+    speaker_used = get_speaker()
+    book = epub.read_epub(bookname)
+    chapters_to_read = get_chapters(book, bookname)
+    start = get_start()
+    end = get_end()
+    total_chars = get_length(start, end, chapters_to_read)
+    files = []
     position = 0
-    for i in range(start, end):
-        total_chars += len(chapters_to_read[i])
     start_time = time.time()
-
     tts = TTS(model_name)
     for i in range(start, end):
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
