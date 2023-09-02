@@ -1,9 +1,9 @@
-This script takes an epub and reads it to an mp3 or an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS
+This script takes an epub (or text file) and reads it to an mp3 or an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
 ## USAGE:
-Usage: `epub2tts my-book.epub`
+Usage: `epub2tts my-book.epub` OR `epub2tts my-book.txt`
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
 

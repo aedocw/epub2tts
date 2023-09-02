@@ -16,6 +16,7 @@
 import os
 import subprocess
 import sys
+import time
 import wave
 
 
@@ -30,6 +31,20 @@ model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 ffmetadatafile = "FFMETADATAFILE"
 
+usage = """
+Usage: epub2tts my-book.epub
+
+Adding --scan will list excerpts of each chapter, then exit. This is
+helpful for finding which chapter to start and end on if you want to
+skip TOC, bibliography, etc.
+
+To change speaker (ex p307 for a good male voice), add: --speaker p307
+To output in mp3 format instead of m4b, add: --mp3
+To skip reading any links, add: --skip-links
+
+To specify which chapter to start on (ex 3): --start 3
+To specify which chapter to end on (ex 20): --end 20
+"""
 
 def chap2text(chap):
     output = ''
@@ -38,7 +53,7 @@ def chap2text(chap):
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
             a.extract()
-    text = soup.find_all(text=True)
+    text = soup.find_all(string=True)
     for t in text:
         if t.parent.name not in blacklist:
             output += '{} '.format(t)
@@ -69,28 +84,27 @@ def gen_ffmetadata(files):
             chap += 1
             start_time += duration
 
-
-def main():
-    # TODO: accept URL to fetch book directly from project gutenberg
-    booklist = [s for s in sys.argv if ".epub" in s]
-
-    if len(booklist) > 0:
-        bookname = booklist[0]
+def get_bookname():
+    for i, arg in enumerate(sys.argv):
+        if arg.endswith('.txt') or arg.endswith('.epub'):
+            bookname = arg
+    if len(bookname) > 0:
         print(f"Book filename: {bookname}")
+        return(bookname)
     else:
-        print("Please specify epub to read")
+        print(usage)
         sys.exit()
 
+def get_speaker():
     if "--speaker" in sys.argv:
         index = sys.argv.index("--speaker")
         speaker_used = sys.argv[index + 1]    
     else:
         speaker_used = "p335"
-
     print(f"Speaker: {speaker_used}")
+    return(speaker_used)
 
-    book = epub.read_epub(bookname)
-
+def get_chapters_epub(book, bookname):
     chapters = []
     for item in book.get_items():
         if item.get_type() == ebooklib.ITEM_DOCUMENT:
@@ -100,51 +114,89 @@ def main():
     for i in range(len(chapters)):
         #strip some characters that might have caused TTS to choke
         text = chap2text(chapters[i])
-        text = text.translate({ord(c): None for c in '[]'})
+        text = text.translate({ord(c): None for c in '[]*'})
         if len(text) < 150:
             #too short to bother with
             continue
         outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
         print(outputwav + " Length: " + str(len(text)))
-        print("Chapter: " + str(len(chapters_to_read)+1))
+        print("Part: " + str(len(chapters_to_read)+1))
         print(text[:256])
-        if len(text) > 100000:
-            # too long, split in four
-            # TODO: Find what size actually causes problems, and chunk this up
-            # into appropriate sizes rather than just blindly chopping into 1/4ths
-            q = len(text)//4
-            chapters_to_read.append(text[:q])
-            chapters_to_read.append(text[q:q*2])
-            chapters_to_read.append(text[q*2:q*3])
-            chapters_to_read.append(text[q*3:])
-        else:
-            chapters_to_read.append(text)
-
+        chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
     print("Number of chapters to read: " + str(len(chapters_to_read)))
-
     if "--scan" in sys.argv:
         sys.exit()
+    return(chapters_to_read)
 
-    files = []
+def get_chapters_text(bookname):
+    chapters_to_read = []
+    with open(bookname, 'r') as file:
+        text = file.read()
+    max_len = 50000
+    while len(text) > max_len:
+        pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
+        chapters_to_read.append(text[:pos])
+        print("Part: " + str(len(chapters_to_read)))
+        print(str(chapters_to_read[-1])[:256])
+        text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
+    chapters_to_read.append(text)
+    return(chapters_to_read)
 
+def get_length(start, end, chapters_to_read):
+    total_chars = 0
+    for i in range(start, end):
+        total_chars += len(chapters_to_read[i])
+    return(total_chars)
+
+def get_start():
+# There are definitely better ways to handle arguments, this should be fixed
     if "--start" in sys.argv:
         start = int(sys.argv[sys.argv.index("--start") + 1]) - 1
     else:
         start = 0
+    return(start)
 
+def get_end(chapters_to_read):
+# There are definitely better ways to handle arguments, this should be fixed
     if "--end" in sys.argv:
         end = int(sys.argv[sys.argv.index("--end") + 1])
     else:
         end = len(chapters_to_read)
+    return(end)
 
+def main():
+    bookname = get_bookname() #will detect only .txt or .epub
+    booktype = bookname.split('.')[-1]
+    speaker_used = get_speaker()
+    if booktype == "epub":
+        book = epub.read_epub(bookname)
+        chapters_to_read = get_chapters_epub(book, bookname)
+    else: #book is text, hopefully
+        print("Detected TEXT for file type, --scan, --start and --end will be ignored")
+        chapters_to_read = get_chapters_text(bookname)
+    start = get_start()
+    end = get_end(chapters_to_read)
+    total_chars = get_length(start, end, chapters_to_read)
+    files = []
+    position = 0
+    start_time = time.time()
+    tts = TTS(model_name)
     for i in range(start, end):
-        tts = TTS(model_name)        
-        text = chap2text(chapters_to_read[i])
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
-        # Seems TTS can only output in wav? convert to m4a aftwarwards
+        # Seems TTS can only output in wav? convert to m4b aftwarwards
         tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
+        position += len(chapters_to_read[i])
+        percentage = (position / total_chars) *100
+        print(f"{percentage:.2f}% spoken so far.\n")
+        elapsed_time = time.time() - start_time
+        chars_remaining = total_chars - position
+        estimated_total_time = elapsed_time / position * total_chars
+        estimated_time_remaining = estimated_total_time - elapsed_time
+        print(f"Elapsed time: {int(elapsed_time / 60)} minutes \n")
+        print(f"Estimated time to 100%: {int((estimated_time_remaining) / 60)} minutes \n")
+
 
     #Load all WAV files and concatenate into one object
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
