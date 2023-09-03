@@ -2,3 +2,4 @@ TTS
 ebooklib
 beautifulsoup4
 pydub
+newspaper3k
