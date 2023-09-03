@@ -14,6 +14,7 @@
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
+import requests
 import subprocess
 import sys
 import time
@@ -23,6 +24,7 @@ import wave
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
+from newspaper import Article
 from pydub import AudioSegment
 from TTS.api import TTS
 
@@ -32,7 +34,10 @@ blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input'
 ffmetadatafile = "FFMETADATAFILE"
 
 usage = """
-Usage: epub2tts my-book.epub
+Usage: 
+  EPUB: epub2tts my-book.epub
+  TEXT: epub2tts my-book.txt
+  URL:  epub2tts --url https://www.example.com/page --name example-page
 
 Adding --scan will list excerpts of each chapter, then exit. This is
 helpful for finding which chapter to start and end on if you want to
@@ -85,15 +90,26 @@ def gen_ffmetadata(files):
             start_time += duration
 
 def get_bookname():
+    bookname = ''
     for i, arg in enumerate(sys.argv):
         if arg.endswith('.txt') or arg.endswith('.epub'):
             bookname = arg
+    if ("--url" in sys.argv) and ("--name" in sys.argv):
+        index = sys.argv.index("--name")
+        bookname = sys.argv[index + 1] + ".url"
     if len(bookname) > 0:
         print(f"Book filename: {bookname}")
         return(bookname)
+    elif ("--url" in sys.argv) and ("--name" in sys.argv):
+        return(".url")
     else:
         print(usage)
         sys.exit()
+
+def get_url():
+    index = sys.argv.index("--url")
+    url = sys.argv[index + 1]
+    return(url)
 
 def get_speaker():
     if "--speaker" in sys.argv:
@@ -128,10 +144,8 @@ def get_chapters_epub(book, bookname):
         sys.exit()
     return(chapters_to_read)
 
-def get_chapters_text(bookname):
+def get_chapters_text(text):
     chapters_to_read = []
-    with open(bookname, 'r') as file:
-        text = file.read()
     max_len = 50000
     while len(text) > max_len:
         pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
@@ -141,6 +155,17 @@ def get_chapters_text(bookname):
         text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
     chapters_to_read.append(text)
     return(chapters_to_read)
+
+def get_text(bookname):
+    with open(bookname, 'r') as file:
+        text = file.read()
+    return(text)
+
+def get_url_text(url):
+    article = Article(url)
+    article.download()
+    article.parse()
+    return(article.text)
 
 def get_length(start, end, chapters_to_read):
     total_chars = 0
@@ -165,15 +190,32 @@ def get_end(chapters_to_read):
     return(end)
 
 def main():
-    bookname = get_bookname() #will detect only .txt or .epub
+    bookname = get_bookname() #detect .txt, .epub or https
     booktype = bookname.split('.')[-1]
     speaker_used = get_speaker()
     if booktype == "epub":
         book = epub.read_epub(bookname)
         chapters_to_read = get_chapters_epub(book, bookname)
-    else: #book is text, hopefully
+    elif booktype == "text":
         print("Detected TEXT for file type, --scan, --start and --end will be ignored")
-        chapters_to_read = get_chapters_text(bookname)
+        text = get_text(bookname)
+        chapters_to_read = get_chapters_text(text)
+    elif booktype == "url":
+        print("Detected URL for file type, --scan, --start and --end will be ignored")
+        url = get_url()
+        text = get_url_text(url)
+        print("Name: " + bookname)
+        print(text)
+        while True:
+            user_input = input("Look good, continue? (y/n): ")
+            if user_input.lower() not in ['y', 'n']:
+                print("Invalid input. Please enter y for yes or n for no.")
+            elif user_input.lower() == 'n':
+                sys.exit()
+            else:
+                print("Continuing...")
+                break
+        chapters_to_read = get_chapters_text(text)
     start = get_start()
     end = get_end(chapters_to_read)
     total_chars = get_length(start, end, chapters_to_read)
