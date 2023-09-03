@@ -4,8 +4,11 @@ I recognize this is not very user friendly, but I wanted to share in case folks 
 
 ## USAGE:
 Usage: 
+
   EPUB: `epub2tts my-book.epub`
+
   TEXT: `epub2tts my-book.txt`
+
   URL:  `epub2tts --url https://www.example.com/page --name example-page`
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
