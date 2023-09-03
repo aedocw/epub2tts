@@ -3,7 +3,13 @@ This script takes an epub (or text file) and reads it to an mp3 or an m4b audiob
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
 ## USAGE:
-Usage: `epub2tts my-book.epub` OR `epub2tts my-book.txt`
+Usage: 
+
+  EPUB: `epub2tts my-book.epub`
+
+  TEXT: `epub2tts my-book.txt`
+
+  URL:  `epub2tts --url https://www.example.com/page --name example-page`
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
 
