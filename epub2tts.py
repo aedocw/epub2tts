@@ -227,7 +227,10 @@ def main():
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
         if os.path.isfile(outputwav):
+<<<<<<< HEAD
             #output wav file exists, skip to next chapter
+=======
+>>>>>>> 87e360d (Add ability to start up where you left off in case of interruption)
             print(outputwav + " exists, skipping to next chapter")
             continue()
         else:
@@ -235,7 +238,7 @@ def main():
         files.append(outputwav)
         position += len(chapters_to_read[i])
         percentage = (position / total_chars) *100
-        print(f"{percentage:.2f}% spoken so far.\n")
+        print(f"{percentage:.2f}% spoken so far.")
         elapsed_time = time.time() - start_time
         chars_remaining = total_chars - position
         estimated_total_time = elapsed_time / position * total_chars
