@@ -133,7 +133,7 @@ def get_chapters_epub(book, bookname):
         text = text.translate({ord(c): None for c in '[]*'})
         if len(text) < 150:
             #too short to bother with
-            continue()
+            continue
         outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
         print(outputwav + " Length: " + str(len(text)))
         print("Part: " + str(len(chapters_to_read)+1))
@@ -228,7 +228,7 @@ def main():
         print("Reading " + str(i))
         if os.path.isfile(outputwav):
             print(outputwav + " exists, skipping to next chapter")
-            continue()
+            continue
         else:
             tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
