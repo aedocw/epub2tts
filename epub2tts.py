@@ -133,7 +133,7 @@ def get_chapters_epub(book, bookname):
         text = text.translate({ord(c): None for c in '[]*'})
         if len(text) < 150:
             #too short to bother with
-            continue
+            continue()
         outputwav = str(i)+"-"+bookname.split(".")[0]+".wav"
         print(outputwav + " Length: " + str(len(text)))
         print("Part: " + str(len(chapters_to_read)+1))
@@ -226,8 +226,12 @@ def main():
     for i in range(start, end):
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
-        # Seems TTS can only output in wav? convert to m4b aftwarwards
-        tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
+        if os.path.isfile(outputwav):
+            #output wav file exists, skip to next chapter
+            print(outputwav + " exists, skipping to next chapter")
+            continue()
+        else:
+            tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
         position += len(chapters_to_read[i])
         percentage = (position / total_chars) *100
@@ -236,8 +240,7 @@ def main():
         chars_remaining = total_chars - position
         estimated_total_time = elapsed_time / position * total_chars
         estimated_time_remaining = estimated_total_time - elapsed_time
-        print(f"Elapsed time: {int(elapsed_time / 60)} minutes \n")
-        print(f"Estimated time to 100%: {int((estimated_time_remaining) / 60)} minutes \n")
+        print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
 
 
     #Load all WAV files and concatenate into one object
