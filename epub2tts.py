@@ -227,10 +227,6 @@ def main():
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
         if os.path.isfile(outputwav):
-<<<<<<< HEAD
-            #output wav file exists, skip to next chapter
-=======
->>>>>>> 87e360d (Add ability to start up where you left off in case of interruption)
             print(outputwav + " exists, skipping to next chapter")
             continue()
         else:
