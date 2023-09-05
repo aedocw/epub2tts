@@ -23,6 +23,8 @@ To specify which chapter to start on (ex 3): `--start 3`
 
 To specify which chapter to end on (ex 20): `--end 20`
 
+If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
+
 ## DOCKER INSTALLATION:
 Voice models will be saved locally in `~/.local/share/tts`
 
