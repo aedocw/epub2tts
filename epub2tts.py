@@ -228,7 +228,6 @@ def main():
         print("Reading " + str(i))
         if os.path.isfile(outputwav):
             print(outputwav + " exists, skipping to next chapter")
-            continue
         else:
             tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
         files.append(outputwav)
