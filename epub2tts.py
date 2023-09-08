@@ -27,7 +27,10 @@ from ebooklib import epub
 from newspaper import Article
 from pydub import AudioSegment
 from TTS.api import TTS
+import torch, gc
 
+# Verify if CUDA is available and select it
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
@@ -222,7 +225,7 @@ def main():
     files = []
     position = 0
     start_time = time.time()
-    tts = TTS(model_name)
+    tts = TTS(model_name).to(device)
     for i in range(start, end):
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
@@ -239,6 +242,13 @@ def main():
         estimated_total_time = elapsed_time / position * total_chars
         estimated_time_remaining = estimated_total_time - elapsed_time
         print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
+
+        # Clean GPU cache to have it all available for next step
+        if device == 'cuda':
+            gc.collect()
+            torch.cuda.empty_cache()
+        else:
+            pass
 
 
     #Load all WAV files and concatenate into one object
