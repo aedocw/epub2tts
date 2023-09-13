@@ -199,7 +199,7 @@ def main():
     if booktype == "epub":
         book = epub.read_epub(bookname)
         chapters_to_read = get_chapters_epub(book, bookname)
-    elif booktype == "text":
+    elif booktype == "txt":
         print("Detected TEXT for file type, --scan, --start and --end will be ignored")
         text = get_text(bookname)
         chapters_to_read = get_chapters_text(text)
