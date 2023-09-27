@@ -283,7 +283,7 @@ def main():
         os.remove(outputm4a)
     #cleanup, delete the wav files we no longer need
     for f in files:
-       os.remove(f)
+        os.remove(f)
 
 if __name__ == '__main__':
     main()
