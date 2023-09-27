@@ -11,6 +11,7 @@
 # for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
 # To specify which chapter to start on (ex 3): `--start 3`
 # To specify which chapter to end on (ex 20): `--end 20`
+# To specify bitrate: --bitrate 30k
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
@@ -49,9 +50,9 @@ skip TOC, bibliography, etc.
 To change speaker (ex p307 for a good male voice), add: --speaker p307
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
-
 To specify which chapter to start on (ex 3): --start 3
 To specify which chapter to end on (ex 20): --end 20
+To specify bitrate (ex 30k): --bitrate 30k
 """
 
 def chap2text(chap):
@@ -77,11 +78,15 @@ def get_wav_duration(file_path):
         return int(duration_milliseconds)
     
 
-def gen_ffmetadata(files):
+def gen_ffmetadata(files, book):
     chap = 1
     start_time = 0
+    author = book.get_metadata('DC', 'creator')[0][0]
+    title = book.get_metadata('DC', 'title')[0][0]
     with open(ffmetadatafile, "w") as file:
         file.write(";FFMETADATA1\n")
+        file.write("ARTIST=" + str(author) + "\n")
+        file.write("ALBUM=" + str(title) + "\n")
         for file_name in files:
             duration = get_wav_duration(file_name)
             file.write("[CHAPTER]\n")
@@ -122,6 +127,15 @@ def get_speaker():
         speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
     return(speaker_used)
+
+def get_bitrate():
+    if "--bitrate" in sys.argv:
+        index = sys.argv.index("--bitrate")
+        bitrate = sys.argv[index + 1]    
+    else:
+        bitrate = "69k"
+    print(f"Bitrate: {bitrate}")
+    return(bitrate)
 
 def get_chapters_epub(book, bookname):
     chapters = []
@@ -260,15 +274,16 @@ def main():
     else:
         outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
         outputm4b = outputm4a.replace("m4a", "m4b")
-        concatenated.export(outputm4a, format="ipod")
-        gen_ffmetadata(files)
+        bitrate = get_bitrate()
+        concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
+        gen_ffmetadata(files, book)
         ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",ffmetadatafile,"-map_metadata","1","-codec","copy",outputm4b]
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
         os.remove(outputm4a)
     #cleanup, delete the wav files we no longer need
     for f in files:
-        os.remove(f)
+       os.remove(f)
 
 if __name__ == '__main__':
     main()
