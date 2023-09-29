@@ -78,11 +78,9 @@ def get_wav_duration(file_path):
         return int(duration_milliseconds)
     
 
-def gen_ffmetadata(files, book):
+def gen_ffmetadata(files, title, author):
     chap = 1
     start_time = 0
-    author = book.get_metadata('DC', 'creator')[0][0]
-    title = book.get_metadata('DC', 'title')[0][0]
     with open(ffmetadatafile, "w") as file:
         file.write(";FFMETADATA1\n")
         file.write("ARTIST=" + str(author) + "\n")
@@ -276,7 +274,13 @@ def main():
         outputm4b = outputm4a.replace("m4a", "m4b")
         bitrate = get_bitrate()
         concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
-        gen_ffmetadata(files, book)
+        if booktype == 'epub':
+            author = book.get_metadata('DC', 'creator')[0][0]
+            title = book.get_metadata('DC', 'title')[0][0]
+        else:
+            author = "Unknown"
+            title = bookname
+        gen_ffmetadata(files, title, author)
         ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",ffmetadatafile,"-map_metadata","1","-codec","copy",outputm4b]
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
