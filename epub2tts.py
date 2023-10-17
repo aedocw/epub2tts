@@ -30,8 +30,15 @@ from pydub import AudioSegment
 from TTS.api import TTS
 import torch, gc
 
-# Verify if CUDA is available and select it
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# Verify if CUDA or mps is available and select it
+if torch.cuda.is_available():
+    device = "cuda" 
+#except mps doesn't work right for this yet :(
+#elif torch.backends.mps.is_available():
+#    device = "mps"
+else:
+    device = "cpu"
+print(f"Using device: {device}")
 
 model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
@@ -50,6 +57,7 @@ skip TOC, bibliography, etc.
 To change speaker (ex p307 for a good male voice), add: --speaker p307
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
+To skip reading links that are numbers (like footnotes), add: --skip-number-links
 To specify which chapter to start on (ex 3): --start 3
 To specify which chapter to end on (ex 20): --end 20
 To specify bitrate (ex 30k): --bitrate 30k
@@ -62,6 +70,10 @@ def chap2text(chap):
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
             a.extract()
+    if "--skip-number-links" in sys.argv:
+        for a in soup.findAll('a', href=True):
+            if a.text.isdigit():
+                a.extract()
     text = soup.find_all(string=True)
     for t in text:
         if t.parent.name not in blacklist:
