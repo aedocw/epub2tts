@@ -57,7 +57,6 @@ skip TOC, bibliography, etc.
 To change speaker (ex p307 for a good male voice), add: --speaker p307
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
-To skip reading links that are numbers (like footnotes), add: --skip-number-links
 To specify which chapter to start on (ex 3): --start 3
 To specify which chapter to end on (ex 20): --end 20
 To specify bitrate (ex 30k): --bitrate 30k
@@ -70,10 +69,10 @@ def chap2text(chap):
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
             a.extract()
-    if "--skip-number-links" in sys.argv:
-        for a in soup.findAll('a', href=True):
-            if a.text.isdigit():
-                a.extract()
+    #Always skip reading links that are just a number (footnotes)
+    for a in soup.findAll('a', href=True):
+        if a.text.isdigit():
+            a.extract()
     text = soup.find_all(string=True)
     for t in text:
         if t.parent.name not in blacklist:

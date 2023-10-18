@@ -19,8 +19,6 @@ To output in mp3 format instead of m4b, add: `--mp3`
 
 To skip reading any links, add: `--skip-links`
 
-To skip reading links that are numbers (like footnotes), add: --skip-number-links
-
 Using `--scan` will list excerpts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
 
 To specify which chapter to start on (ex 3): `--start 3`
