@@ -2,6 +2,8 @@ This script takes an epub (or text file) and reads it to an mp3 or an m4b audiob
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
+**NOTE:** HUGE thanks to a recent PR from [wonka929](https://github.com/wonka929), epub2tts now recognizes when a CUDA GPU is available and will use it automatically. In a brief test I did, the speedup was incredible!
+
 ## USAGE:
 Usage: 
 
@@ -22,6 +24,10 @@ Using `--scan` will list excerpts of each chapter, then exit. This is helpful fo
 To specify which chapter to start on (ex 3): `--start 3`
 
 To specify which chapter to end on (ex 20): `--end 20`
+
+To specify bitrate (ex 30k): `--bitrate 30k`
+
+If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
 
 ## DOCKER INSTALLATION:
 Voice models will be saved locally in `~/.local/share/tts`

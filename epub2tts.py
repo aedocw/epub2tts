@@ -11,6 +11,7 @@
 # for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
 # To specify which chapter to start on (ex 3): `--start 3`
 # To specify which chapter to end on (ex 20): `--end 20`
+# To specify bitrate: --bitrate 30k
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
@@ -27,7 +28,17 @@ from ebooklib import epub
 from newspaper import Article
 from pydub import AudioSegment
 from TTS.api import TTS
+import torch, gc
 
+# Verify if CUDA or mps is available and select it
+if torch.cuda.is_available():
+    device = "cuda" 
+#except mps doesn't work right for this yet :(
+#elif torch.backends.mps.is_available():
+#    device = "mps"
+else:
+    device = "cpu"
+print(f"Using device: {device}")
 
 model_name = "tts_models/en/vctk/vits"
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
@@ -46,9 +57,9 @@ skip TOC, bibliography, etc.
 To change speaker (ex p307 for a good male voice), add: --speaker p307
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
-
 To specify which chapter to start on (ex 3): --start 3
 To specify which chapter to end on (ex 20): --end 20
+To specify bitrate (ex 30k): --bitrate 30k
 """
 
 def chap2text(chap):
@@ -57,6 +68,10 @@ def chap2text(chap):
     if "--skip-links" in sys.argv:
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
+            a.extract()
+    #Always skip reading links that are just a number (footnotes)
+    for a in soup.findAll('a', href=True):
+        if a.text.isdigit():
             a.extract()
     text = soup.find_all(string=True)
     for t in text:
@@ -74,11 +89,13 @@ def get_wav_duration(file_path):
         return int(duration_milliseconds)
     
 
-def gen_ffmetadata(files):
+def gen_ffmetadata(files, title, author):
     chap = 1
     start_time = 0
     with open(ffmetadatafile, "w") as file:
         file.write(";FFMETADATA1\n")
+        file.write("ARTIST=" + str(author) + "\n")
+        file.write("ALBUM=" + str(title) + "\n")
         for file_name in files:
             duration = get_wav_duration(file_name)
             file.write("[CHAPTER]\n")
@@ -119,6 +136,15 @@ def get_speaker():
         speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
     return(speaker_used)
+
+def get_bitrate():
+    if "--bitrate" in sys.argv:
+        index = sys.argv.index("--bitrate")
+        bitrate = sys.argv[index + 1]    
+    else:
+        bitrate = "69k"
+    print(f"Bitrate: {bitrate}")
+    return(bitrate)
 
 def get_chapters_epub(book, bookname):
     chapters = []
@@ -196,7 +222,7 @@ def main():
     if booktype == "epub":
         book = epub.read_epub(bookname)
         chapters_to_read = get_chapters_epub(book, bookname)
-    elif booktype == "text":
+    elif booktype == "txt":
         print("Detected TEXT for file type, --scan, --start and --end will be ignored")
         text = get_text(bookname)
         chapters_to_read = get_chapters_text(text)
@@ -222,7 +248,7 @@ def main():
     files = []
     position = 0
     start_time = time.time()
-    tts = TTS(model_name)
+    tts = TTS(model_name).to(device)
     for i in range(start, end):
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
@@ -240,6 +266,13 @@ def main():
         estimated_time_remaining = estimated_total_time - elapsed_time
         print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
 
+        # Clean GPU cache to have it all available for next step
+        if device == 'cuda':
+            gc.collect()
+            torch.cuda.empty_cache()
+        else:
+            pass
+
 
     #Load all WAV files and concatenate into one object
     wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
@@ -250,8 +283,15 @@ def main():
     else:
         outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
         outputm4b = outputm4a.replace("m4a", "m4b")
-        concatenated.export(outputm4a, format="ipod")
-        gen_ffmetadata(files)
+        bitrate = get_bitrate()
+        concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
+        if booktype == 'epub':
+            author = book.get_metadata('DC', 'creator')[0][0]
+            title = book.get_metadata('DC', 'title')[0][0]
+        else:
+            author = "Unknown"
+            title = bookname
+        gen_ffmetadata(files, title, author)
         ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",ffmetadatafile,"-map_metadata","1","-codec","copy",outputm4b]
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
