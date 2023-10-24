@@ -69,7 +69,7 @@ pip install .
 
 ## LINUX INSTALLATION:
 
-For  now I've only tested this on a linux machine (Ubuntu 22 in my case). Ensure you have `ffmpeg` installed before use.
+These instructions are for Ubuntu, but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use.
 
 Voice models will be saved locally in `~/.local/share/tts`
 
@@ -83,8 +83,6 @@ pip install .
 ```
 
 ## DEVELOPMENT INSTALL:
-
-For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
 
 ```
 #clone the repo
