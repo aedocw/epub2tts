@@ -29,11 +29,25 @@ To specify bitrate (ex 30k): `--bitrate 30k`
 
 If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
 
-## DOCKER INSTALLATION:
+## DOCKER INSTRUCTIONS:
 Voice models will be saved locally in `~/.local/share/tts`
 
+For *Linux and MacOS*:
 ```
 alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
+```
+
+For *Windows*:
+Pre-requisites:
+* Install Docker Desktop
+* From PowerShell run "mkdir ~/.local/share/tts"
+
+```
+#Example for running scan of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
+
+#Example for reading parts 3 through 15 of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
 ```
 
 ## MAC INSTALLATION:
