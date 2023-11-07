@@ -51,7 +51,7 @@ docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w 
 ```
 
 ## MAC INSTALLATION:
-This installation requires Python <= 3.12 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
+This installation requires Python < 3.12 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
 Voice models will be saved locally in `~/.local/share/tts`
 ```
@@ -60,8 +60,8 @@ brew install espeak pyenv ffmpeg mecab
 #install epub2tts
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
-pyenv install 3.12
-pyenv local 3.12
+pyenv install 3.11
+pyenv local 3.11
 #OPTIONAL - install this in a virtual environment
 python -m venv .venv && source .venv/bin/activate
 pip install .
