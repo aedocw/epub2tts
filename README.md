@@ -29,15 +29,29 @@ To specify bitrate (ex 30k): `--bitrate 30k`
 
 If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
 
-## DOCKER INSTALLATION:
+## DOCKER INSTRUCTIONS:
 Voice models will be saved locally in `~/.local/share/tts`
 
+For *Linux and MacOS*:
 ```
 alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
 ```
 
+For *Windows*:
+Pre-requisites:
+* Install Docker Desktop
+* From PowerShell run "mkdir ~/.local/share/tts"
+
+```
+#Example for running scan of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
+
+#Example for reading parts 3 through 15 of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
+```
+
 ## MAC INSTALLATION:
-This installation requires Python 3.10 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
+This installation requires Python < 3.12 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
 Voice models will be saved locally in `~/.local/share/tts`
 ```
@@ -46,8 +60,8 @@ brew install espeak pyenv ffmpeg mecab
 #install epub2tts
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
-pyenv install 3.10.11
-pyenv local 3.10.11
+pyenv install 3.11
+pyenv local 3.11
 #OPTIONAL - install this in a virtual environment
 python -m venv .venv && source .venv/bin/activate
 pip install .
@@ -55,7 +69,7 @@ pip install .
 
 ## LINUX INSTALLATION:
 
-For  now I've only tested this on a linux machine (Ubuntu 22 in my case). Ensure you have `ffmpeg` installed before use.
+These instructions are for Ubuntu, but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use.
 
 Voice models will be saved locally in `~/.local/share/tts`
 
@@ -69,8 +83,6 @@ pip install .
 ```
 
 ## DEVELOPMENT INSTALL:
-
-For  now I've only tested this on a linux machine (Ubuntu 22 in my case)
 
 ```
 #clone the repo
