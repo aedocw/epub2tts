@@ -16,6 +16,7 @@
 
 import os
 import requests
+import string
 import subprocess
 import sys
 import time
@@ -156,7 +157,10 @@ def get_chapters_epub(book, bookname):
     for i in range(len(chapters)):
         #strip some characters that might have caused TTS to choke
         text = chap2text(chapters[i])
-        text = text.translate({ord(c): None for c in '[]*“”"\''})
+        #this still misses a lot of special characters...
+        #text = text.translate({ord(c): None for c in '[]*“”"\''})
+        allowed_chars = string.ascii_letters + string.digits + '-,.!? '
+        text = ''.join(c for c in text if c in allowed_chars)
         if len(text) < 150:
             #too short to bother with
             continue
