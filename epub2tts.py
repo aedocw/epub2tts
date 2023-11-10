@@ -28,8 +28,11 @@ import ebooklib
 from ebooklib import epub
 from newspaper import Article
 from pydub import AudioSegment
+import pysbd
 from TTS.api import TTS
 import torch, gc
+from openai import OpenAI
+
 
 # Verify if CUDA or mps is available and select it
 if torch.cuda.is_available():
@@ -134,7 +137,10 @@ def get_speaker():
         index = sys.argv.index("--speaker")
         speaker_used = sys.argv[index + 1]    
     else:
-        speaker_used = "p335"
+        if "--openai" in sys.argv:
+            speaker_used = "onyx"
+        else:
+            speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
     return(speaker_used)
 
@@ -219,10 +225,29 @@ def get_end(chapters_to_read):
         end = len(chapters_to_read)
     return(end)
 
+def get_api_key():
+    if "--openai" in sys.argv:
+        key = str(sys.argv[sys.argv.index("--openai") + 1])
+    else:
+        key = ''
+    print(key)
+    return(key)
+
+def combine_sentences(sentences, length=3500):
+    combined = ""
+    for sentence in sentences:
+        if len(combined) + len(sentence) <= length:
+            combined += sentence + " "
+        else:
+            yield combined
+            combined = sentence
+    yield combined
+
 def main():
     bookname = get_bookname() #detect .txt, .epub or https
     booktype = bookname.split('.')[-1]
     speaker_used = get_speaker()
+    openai_api_key = get_api_key()
     if booktype == "epub":
         book = epub.read_epub(bookname)
         chapters_to_read = get_chapters_epub(book, bookname)
@@ -249,17 +274,53 @@ def main():
     start = get_start()
     end = get_end(chapters_to_read)
     total_chars = get_length(start, end, chapters_to_read)
+    print("Total characters: " + str(total_chars))
+    if "--openai" in sys.argv:
+        while True:
+            openai_sdcost = (total_chars/1000) * 0.015
+            print("OpenAI TTS SD Cost: $" + str(openai_sdcost))
+            user_input = input("This will not be free, continue? (y/n): ")
+            if user_input.lower() not in ['y', 'n']:
+                print("Invalid input. Please enter y for yes or n for no.")
+            elif user_input.lower() == 'n':
+                sys.exit()
+            else:
+                print("Continuing...")
+                break
     files = []
     position = 0
     start_time = time.time()
-    tts = TTS(model_name).to(device)
+    if "--openai" in sys.argv:
+        client = OpenAI(api_key=openai_api_key)
+    else:
+        tts = TTS(model_name).to(device)
+
     for i in range(start, end):
         outputwav = bookname.split(".")[0]+"-"+str(i+1)+".wav"
         print("Reading " + str(i))
         if os.path.isfile(outputwav):
             print(outputwav + " exists, skipping to next chapter")
         else:
-            tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
+            if "--openai" in sys.argv:
+                tempfiles = []
+                segmenter = pysbd.Segmenter(language="en", clean=True)
+                sentences = segmenter.segment(chapters_to_read[i])
+                sentence_groups = list(combine_sentences(sentences))
+                for x in range(len(sentence_groups)):
+                    tempwav = "temp" + str(x) + ".mp3"
+                    print(sentence_groups[x])
+                    response = client.audio.speech.create( model="tts-1", voice=speaker_used, input=sentence_groups[x])
+                    response.stream_to_file(tempwav)
+                    tempfiles.append(tempwav)
+                tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
+                concatenated = sum(tempwavfiles)
+                concatenated.export(outputwav, format="wav")
+                #for f in tempfiles:
+                #    os.remove(f)
+            else:
+                #Just do this if it's TTS
+                tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
+
         files.append(outputwav)
         position += len(chapters_to_read[i])
         percentage = (position / total_chars) *100
