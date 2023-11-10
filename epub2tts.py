@@ -315,10 +315,9 @@ def main():
                 tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
                 concatenated.export(outputwav, format="wav")
-                #for f in tempfiles:
-                #    os.remove(f)
+                for f in tempfiles:
+                    os.remove(f)
             else:
-                #Just do this if it's TTS
                 tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
 
         files.append(outputwav)
