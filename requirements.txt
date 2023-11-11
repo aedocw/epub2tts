@@ -1,5 +1,7 @@
 TTS
 ebooklib
 beautifulsoup4
+openai
 pydub
+pysbd
 newspaper3k
