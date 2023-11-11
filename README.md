@@ -2,6 +2,8 @@ This script takes an epub (or text file) and reads it to an mp3 or an m4b audiob
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
+**NOTE:** Now with [OpenAI TTS](https://platform.openai.com/docs/guides/text-to-speech) support! It's not free, but the average cost for a few books I tested was around $7. If you use `--openai <API key>` flag epub2tts will provide a cost estimate and prompt you to approve before continuing.
+
 **NOTE:** HUGE thanks to a recent PR from [wonka929](https://github.com/wonka929), epub2tts now recognizes when a CUDA GPU is available and will use it automatically. In a brief test I did, the speedup was incredible!
 
 ## USAGE:
@@ -12,6 +14,8 @@ Usage:
   TEXT: `epub2tts my-book.txt`
 
   URL:  `epub2tts --url https://www.example.com/page --name example-page`
+
+To use OpenAI TTS, add: `--openai <your API key>` (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
 
