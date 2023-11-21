@@ -57,6 +57,8 @@ Adding --scan will list excerpts of each chapter, then exit. This is
 helpful for finding which chapter to start and end on if you want to
 skip TOC, bibliography, etc.
 
+To use Coqui XTTS, add: --xtts <sample.wav> (GPU absolutely required, and even then it's slow but sounds amazing!)
+To use OpenAI TTS, add: --openai <your API key> (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 To change speaker (ex p307 for a good male voice), add: --speaker p307
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
@@ -135,10 +137,11 @@ def get_speaker():
     if "--speaker" in sys.argv:
         index = sys.argv.index("--speaker")
         speaker_used = sys.argv[index + 1]    
-    else:
-        if "--openai" in sys.argv:
+    elif "--openai" in sys.argv:
             speaker_used = "onyx"
-        else:
+    elif "--xtts" in sys.argv:
+            speaker_used = "xtts"
+    else:
             speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
     return(speaker_used)
@@ -162,9 +165,8 @@ def get_chapters_epub(book, bookname):
     for i in range(len(chapters)):
         #strip some characters that might have caused TTS to choke
         text = chap2text(chapters[i])
-        #this still misses a lot of special characters...
-        #text = text.translate({ord(c): None for c in '[]*“”"\''})
-        allowed_chars = string.ascii_letters + string.digits + '-,.!? '
+        text = text.replace("—", ", ")
+        allowed_chars = string.ascii_letters + string.digits + "-,.!? '"
         text = ''.join(c for c in text if c in allowed_chars)
         if len(text) < 150:
             #too short to bother with
@@ -324,21 +326,20 @@ def main():
                     os.remove(f)
             else:
                 if "--xtts" in sys.argv:
-
+#look at all this disgusting duplicated code! FIX IT!!!
                     tempfiles = []
                     segmenter = pysbd.Segmenter(language="en", clean=True)
                     sentences = segmenter.segment(chapters_to_read[i])
-                    sentence_groups = list(combine_sentences(sentences), 250)
+                    sentence_groups = list(combine_sentences(sentences, 1000))
                     for x in range(len(sentence_groups)):
                         tempwav = "temp" + str(x) + ".wav"
-                        print(sentence_groups[x])
                         tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
                         tempfiles.append(tempwav)
                     tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
                     concatenated = sum(tempwavfiles)
                     concatenated.export(outputwav, format="wav")
-#                    for f in tempfiles:
-#                        os.remove(f)
+                    for f in tempfiles:
+                        os.remove(f)
 
                 else:
                     tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)

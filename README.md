@@ -15,6 +15,8 @@ Usage:
 
   URL:  `epub2tts --url https://www.example.com/page --name example-page`
 
+To use Coqui XTTS, add: `--xtts <sample.wav>` (GPU absolutely required, and even then it's slow but sounds amazing!)
+
 To use OpenAI TTS, add: `--openai <your API key>` (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 
 To change speaker (ex p307 for a good male voice), add: `--speaker p307`
