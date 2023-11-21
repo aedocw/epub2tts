@@ -166,6 +166,7 @@ def get_chapters_epub(book, bookname):
         #strip some characters that might have caused TTS to choke
         text = chap2text(chapters[i])
         text = text.replace("—", ", ")
+        text = text.replace("--", ", ")
         allowed_chars = string.ascii_letters + string.digits + "-,.!? '"
         text = ''.join(c for c in text if c in allowed_chars)
         if len(text) < 150:
