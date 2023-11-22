@@ -33,6 +33,7 @@ import pysbd
 from TTS.api import TTS
 import torch, gc
 from openai import OpenAI
+import whisper
 
 
 # Verify if CUDA or mps is available and select it
