@@ -347,19 +347,22 @@ def main():
                 for x in range(len(sentence_groups)):
                     retries = 3
                     tempwav = "temp" + str(x) + ".wav"
-                    while retries > 0:
-                        try:
-                            tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
-                            ratio = compare(sentence_groups[x], tempwav)
-                            if ratio < 94:
-                                raise Exception("Spoken text did not sound right")
-                            break
-                        except Exception as e:
-                            retries -= 1
-                            print(f"Error: {str(e)} ... Retrying ({retries} retries left)")
-                    if retries == 0:
-                        print("Something is wrong with the audio")
-                        sys.exit()
+                    if os.path.isfile(tempwav):
+                        print(tempwav + " exists, skipping to next chunk")
+                    else:
+                        while retries > 0:
+                            try:
+                                tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
+                                ratio = compare(sentence_groups[x], tempwav)
+                                if ratio < 94:
+                                    raise Exception("Spoken text did not sound right")
+                                break
+                            except Exception as e:
+                                retries -= 1
+                                print(f"Error: {str(e)} ... Retrying ({retries} retries left)")
+                        if retries == 0:
+                            print("Something is wrong with the audio")
+                            sys.exit()
                     tempfiles.append(tempwav)
                 tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
