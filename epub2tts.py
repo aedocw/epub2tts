@@ -15,6 +15,7 @@
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
+import re
 import requests
 import string
 import subprocess
@@ -26,12 +27,14 @@ import wave
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
+from fuzzywuzzy import fuzz
 from newspaper import Article
+from openai import OpenAI
 from pydub import AudioSegment
 import pysbd
-from TTS.api import TTS
 import torch, gc
-from openai import OpenAI
+from TTS.api import TTS
+import whisper
 
 
 # Verify if CUDA or mps is available and select it
@@ -46,6 +49,7 @@ print(f"Using device: {device}")
 
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 ffmetadatafile = "FFMETADATAFILE"
+whispermodel = whisper.load_model("tiny")
 
 usage = """
 Usage: 
@@ -140,7 +144,9 @@ def get_speaker():
     elif "--openai" in sys.argv:
             speaker_used = "onyx"
     elif "--xtts" in sys.argv:
-            speaker_used = "xtts"
+            index = sys.argv.index("--xtts")
+            speaker_used = "xtts-" + sys.argv[index + 1]
+            speaker_used = speaker_used.replace(".wav", "")
     else:
             speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
@@ -245,6 +251,13 @@ def combine_sentences(sentences, length=3500):
             combined = sentence
     yield combined
 
+def compare(original, wavfile):
+    result = whispermodel.transcribe(wavfile)
+    original = re.sub(' +', ' ', original).lower().strip()
+    ratio = fuzz.ratio(original, result["text"].lower())
+    print("Text to transcription comparison ratio: " + str(ratio))
+    return(ratio)
+
 def main():
     if "--xtts" in sys.argv:
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
@@ -325,26 +338,36 @@ def main():
                 concatenated.export(outputwav, format="wav")
                 for f in tempfiles:
                     os.remove(f)
+            elif "--xtts" in sys.argv:
+#look at all this duplicated code, should chunk and test ALL text the same way
+                tempfiles = []
+                segmenter = pysbd.Segmenter(language="en", clean=True)
+                sentences = segmenter.segment(chapters_to_read[i])
+                sentence_groups = list(combine_sentences(sentences, 750))
+                for x in range(len(sentence_groups)):
+                    retries = 3
+                    tempwav = "temp" + str(x) + ".wav"
+                    while retries > 0:
+                        try:
+                            tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
+                            ratio = compare(sentence_groups[x], tempwav)
+                            if ratio < 94:
+                                raise Exception("Spoken text did not sound right")
+                            break
+                        except Exception as e:
+                            retries -= 1
+                            print(f"Error: {str(e)} ... Retrying ({retries} retries left)")
+                    if retries == 0:
+                        print("Something is wrong with the audio")
+                        sys.exit()
+                    tempfiles.append(tempwav)
+                tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
+                concatenated = sum(tempwavfiles)
+                concatenated.export(outputwav, format="wav")
+                for f in tempfiles:
+                    os.remove(f)
             else:
-                if "--xtts" in sys.argv:
-#look at all this disgusting duplicated code! FIX IT!!!
-                    tempfiles = []
-                    segmenter = pysbd.Segmenter(language="en", clean=True)
-                    sentences = segmenter.segment(chapters_to_read[i])
-                    sentence_groups = list(combine_sentences(sentences, 1000))
-                    for x in range(len(sentence_groups)):
-                        tempwav = "temp" + str(x) + ".wav"
-                        tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
-                        tempfiles.append(tempwav)
-                    tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
-                    concatenated = sum(tempwavfiles)
-                    concatenated.export(outputwav, format="wav")
-                    for f in tempfiles:
-                        os.remove(f)
-
-                else:
-                    tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
-                
+                tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
 
         files.append(outputwav)
         position += len(chapters_to_read[i])
@@ -370,6 +393,7 @@ def main():
     if "--mp3" in sys.argv:
         outputmp3 = bookname.split(".")[0]+"-"+speaker_used+".mp3"
         concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
+        print(outputmp3 + " complete")
     else:
         outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
         outputm4b = outputm4a.replace("m4a", "m4b")
@@ -386,6 +410,7 @@ def main():
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
         os.remove(outputm4a)
+        print(outputm4b + " complete")
     #cleanup, delete the wav files we no longer need
     for f in files:
         os.remove(f)
