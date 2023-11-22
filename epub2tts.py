@@ -14,7 +14,6 @@
 # To specify bitrate: --bitrate 30k
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
-import difflib
 import os
 import requests
 import string
@@ -27,12 +26,13 @@ import wave
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
+from fuzzywuzzy import fuzz
 from newspaper import Article
+from openai import OpenAI
 from pydub import AudioSegment
 import pysbd
-from TTS.api import TTS
 import torch, gc
-from openai import OpenAI
+from TTS.api import TTS
 import whisper
 
 
@@ -48,6 +48,7 @@ print(f"Using device: {device}")
 
 blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
 ffmetadatafile = "FFMETADATAFILE"
+whispermodel = whisper.load_model("tiny")
 
 usage = """
 Usage: 
@@ -249,9 +250,8 @@ def combine_sentences(sentences, length=3500):
 
 def compare(original, wavfile):
     result = whispermodel.transcribe(wavfile)
-    ratio = difflib.SequenceMatcher(None, original, result["text"]).ratio()
-    print(result["text"])
-    print("Ratio: " + str(ratio))
+    ratio = fuzz.ratio(original, result["text"])
+    print("Text to transcription comparison ratio: " + str(ratio))
     return(ratio)
 
 def main():
@@ -259,7 +259,6 @@ def main():
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
         index = sys.argv.index("--xtts")
         speaker_wav = sys.argv[index + 1]
-        whispermodel = whisper.local_model("tiny")
     else:
         model_name = "tts_models/en/vctk/vits"
     bookname = get_bookname() #detect .txt, .epub or https
@@ -336,19 +335,19 @@ def main():
                 for f in tempfiles:
                     os.remove(f)
             elif "--xtts" in sys.argv:
-#look at all this disgusting duplicated code! FIX IT!!!
+#look at all this duplicated code, should chunk and test ALL text the same way
                 tempfiles = []
                 segmenter = pysbd.Segmenter(language="en", clean=True)
                 sentences = segmenter.segment(chapters_to_read[i])
-                sentence_groups = list(combine_sentences(sentences, 1000))
+                sentence_groups = list(combine_sentences(sentences, 750))
                 for x in range(len(sentence_groups)):
                     retries = 3
                     tempwav = "temp" + str(x) + ".wav"
-                    while retries < 3:
+                    while retries > 0:
                         try:
                             tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
                             ratio = compare(sentence_groups[x], tempwav)
-                            if ratio < 0.86:
+                            if ratio < 90:
                                 raise Exception("Spoken text did not sound right")
                             break
                         except Exception as e:

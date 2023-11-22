@@ -1,8 +1,10 @@
-TTS
-ebooklib
 beautifulsoup4
+ebooklib
+fuzzywuzzy
+newspaper3k
 openai
 pydub
 pysbd
-newspaper3k
+python-Levenshtein
+TTS
 whisper
