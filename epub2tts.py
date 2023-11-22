@@ -14,6 +14,7 @@
 # To specify bitrate: --bitrate 30k
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
+import difflib
 import os
 import requests
 import string
@@ -245,11 +246,19 @@ def combine_sentences(sentences, length=3500):
             combined = sentence
     yield combined
 
+def compare(original, wavfile):
+    result = whispermodel.transcribe(wavfile)
+    ratio = difflib.SequenceMatcher(None, original, result["text"]).ratio()
+    print(result["text"])
+    print("Ratio: " + str(ratio))
+    return(ratio)
+
 def main():
     if "--xtts" in sys.argv:
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
         index = sys.argv.index("--xtts")
         speaker_wav = sys.argv[index + 1]
+        whispermodel = whisper.local_model("tiny")
     else:
         model_name = "tts_models/en/vctk/vits"
     bookname = get_bookname() #detect .txt, .epub or https
@@ -325,26 +334,36 @@ def main():
                 concatenated.export(outputwav, format="wav")
                 for f in tempfiles:
                     os.remove(f)
-            else:
-                if "--xtts" in sys.argv:
+            elif "--xtts" in sys.argv:
 #look at all this disgusting duplicated code! FIX IT!!!
-                    tempfiles = []
-                    segmenter = pysbd.Segmenter(language="en", clean=True)
-                    sentences = segmenter.segment(chapters_to_read[i])
-                    sentence_groups = list(combine_sentences(sentences, 1000))
-                    for x in range(len(sentence_groups)):
-                        tempwav = "temp" + str(x) + ".wav"
-                        tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
-                        tempfiles.append(tempwav)
-                    tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
-                    concatenated = sum(tempwavfiles)
-                    concatenated.export(outputwav, format="wav")
-                    for f in tempfiles:
-                        os.remove(f)
-
-                else:
-                    tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
-                
+                tempfiles = []
+                segmenter = pysbd.Segmenter(language="en", clean=True)
+                sentences = segmenter.segment(chapters_to_read[i])
+                sentence_groups = list(combine_sentences(sentences, 1000))
+                for x in range(len(sentence_groups)):
+                    retries = 3
+                    tempwav = "temp" + str(x) + ".wav"
+                    while retries < 3:
+                        try:
+                            tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
+                            ratio = compare(sentence_groups[x], tempwav)
+                            if ratio < 0.86:
+                                raise Exception("Spoken text did not sound right")
+                            break
+                        except Exception as e:
+                            retries -= 1
+                            print(f"Error: {str(e)} ... Retrying ({retries} retries left)")
+                    if retries == 0:
+                        print("Something is wrong with the audio")
+                        sys.exit()
+                    tempfiles.append(tempwav)
+                tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
+                concatenated = sum(tempwavfiles)
+                concatenated.export(outputwav, format="wav")
+                for f in tempfiles:
+                    os.remove(f)
+            else:
+                tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
 
         files.append(outputwav)
         position += len(chapters_to_read[i])

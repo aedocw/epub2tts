@@ -5,3 +5,4 @@ openai
 pydub
 pysbd
 newspaper3k
+whisper
