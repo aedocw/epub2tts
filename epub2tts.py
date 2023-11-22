@@ -144,7 +144,9 @@ def get_speaker():
     elif "--openai" in sys.argv:
             speaker_used = "onyx"
     elif "--xtts" in sys.argv:
-            speaker_used = "xtts"
+            index = sys.argv.index("--xtts")
+            speaker_used = "xtts-" + sys.argv[index + 1]
+            speaker_used = speaker_used.replace(".wav", "")
     else:
             speaker_used = "p335"
     print(f"Speaker: {speaker_used}")
