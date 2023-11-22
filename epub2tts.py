@@ -15,6 +15,7 @@
 # Output will be an m4b or mp3 with each chapter read by Coqui TTS: https://github.com/coqui-ai/TTS
 
 import os
+import re
 import requests
 import string
 import subprocess
@@ -250,7 +251,8 @@ def combine_sentences(sentences, length=3500):
 
 def compare(original, wavfile):
     result = whispermodel.transcribe(wavfile)
-    ratio = fuzz.ratio(original, result["text"])
+    original = re.sub(' +', ' ', original).lower().strip()
+    ratio = fuzz.ratio(original, result["text"].lower())
     print("Text to transcription comparison ratio: " + str(ratio))
     return(ratio)
 
@@ -347,7 +349,7 @@ def main():
                         try:
                             tts.tts_to_file(text=sentence_groups[x], speaker_wav = speaker_wav, file_path=tempwav, language="en")
                             ratio = compare(sentence_groups[x], tempwav)
-                            if ratio < 90:
+                            if ratio < 94:
                                 raise Exception("Spoken text did not sound right")
                             break
                         except Exception as e:
@@ -389,6 +391,7 @@ def main():
     if "--mp3" in sys.argv:
         outputmp3 = bookname.split(".")[0]+"-"+speaker_used+".mp3"
         concatenated.export(outputmp3, format="mp3", parameters=["-write_xing", "0", "-filter:a", "speechnorm=e=6.25:r=0.00001:l=1"])
+        print(outputmp3 + " complete")
     else:
         outputm4a = bookname.split(".")[0]+"-"+speaker_used+".m4a"
         outputm4b = outputm4a.replace("m4a", "m4b")
@@ -405,6 +408,7 @@ def main():
         subprocess.run(ffmpeg_command)
         os.remove(ffmetadatafile)
         os.remove(outputm4a)
+        print(outputm4b + " complete")
     #cleanup, delete the wav files we no longer need
     for f in files:
         os.remove(f)
