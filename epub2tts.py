@@ -64,6 +64,7 @@ skip TOC, bibliography, etc.
 To use Coqui XTTS, add: --xtts <sample.wav> (GPU absolutely required, and even then it's slow but sounds amazing!)
 To use OpenAI TTS, add: --openai <your API key> (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 To change speaker (ex p307 for a good male voice), add: --speaker p307
+To used a different model, add: "--model <path to model relative to .local/share/tts>"
 To output in mp3 format instead of m4b, add: --mp3
 To skip reading any links, add: --skip-links
 To specify which chapter to start on (ex 3): --start 3
@@ -263,6 +264,9 @@ def main():
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
         index = sys.argv.index("--xtts")
         speaker_wav = sys.argv[index + 1]
+    elif "--model" in sys.argv:
+        index = sys.argv.index("--model")
+        model_name = sys.argv[index + 1]
     else:
         model_name = "tts_models/en/vctk/vits"
     bookname = get_bookname() #detect .txt, .epub or https
@@ -370,7 +374,11 @@ def main():
                 for f in tempfiles:
                     os.remove(f)
             else:
-                tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
+                if "--model" in sys.argv:
+                    #assume we're using a single speaker model here
+                    tts.tts_to_file(text = chapters_to_read[i], file_path = outputwav)
+                else:
+                    tts.tts_to_file(text = chapters_to_read[i], speaker = speaker_used, file_path = outputwav)
 
         files.append(outputwav)
         position += len(chapters_to_read[i])
