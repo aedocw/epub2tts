@@ -79,6 +79,10 @@ def chap2text(chap):
         # Remove everything that is an href
         for a in soup.findAll('a', href=True):
             a.extract()
+    #Always skip reading links that have text starting with http
+    for a in soup.findAll('a', href=True):
+        if a.get_text().startswith('http'):
+            a.extract()
     #Always skip reading links that are just a number (footnotes)
     for a in soup.findAll('a', href=True):
         if a.text.isdigit():
