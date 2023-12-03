@@ -1,0 +1,7 @@
+The script takes an epub or text file and reads it to an
+audiobook using TTS by coqui text to speech. I recognize
+this is not very user-friendly, but I wanted to share in
+case folks thought it was useful. If there are a few more
+people than myself that find this is useful I will keep
+working on turning it into something that could be used by
+someone without dev experience.
