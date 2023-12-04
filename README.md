@@ -1,6 +1,10 @@
-This script takes an epub (or text file) and reads it to an mp3 or an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS
+This script takes an epub (or text file) and reads it to an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS or OpenAI. The audiofiles are created in discrete chunks then transcribed using whisper speech-to-text. The transcription is compared to the original text, and if they don't match well it tries again. Finally all silence longer than a second is removed from all audio segments, and the audio is cleaned up before being combined into an m4b audiobook file.
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
+
+**NOTE: BIG UPDATE for XTTS!** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect.
+
+Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav`
 
 **NOTE:** Now with [OpenAI TTS](https://platform.openai.com/docs/guides/text-to-speech) support! It's not free, but the average cost for a few books I tested was around $7. If you use `--openai <API key>` flag epub2tts will provide a cost estimate and prompt you to approve before continuing.
 
@@ -13,17 +17,13 @@ Usage:
 
   TEXT: `epub2tts my-book.txt`
 
-  URL:  `epub2tts --url https://www.example.com/page --name example-page`
-
-To use Coqui XTTS, add: `--xtts <sample.wav>` (GPU absolutely required, and even then it's slow but sounds amazing!)
+To use Coqui XTTS, add: `--xtts <sample-1.wav>,<sample-2.wav>,<sample-3.wav>` (GPU required, slow but sounds amazing!)
 
 To use OpenAI TTS, add: `--openai <your API key>` (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 
-To change speaker (ex p307 for a good male voice), add: `--speaker p307`
+To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p307`
 
-To output in mp3 format instead of m4b, add: `--mp3`
-
-To skip reading any links, add: `--skip-links`
+To skip reading any links, add: `--skiplinks`
 
 Using `--scan` will list excerpts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
 
