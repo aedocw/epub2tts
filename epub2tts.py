@@ -32,13 +32,14 @@ import whisper
 
 
 class EpubToAudiobook:
-    def __init__(self, source, start, end, skiplinks, engine, debug):
+    def __init__(self, source, start, end, skiplinks, engine, minratio, debug):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
         self.end = end
         self.skiplinks = skiplinks
         self.engine = engine
+        self.minratio = minratio
         self.debug = debug
         self.output_filename = self.bookname + ".m4b"
         self.chapters = []
@@ -281,7 +282,7 @@ class EpubToAudiobook:
                                     else:
                                         self.tts.tts_to_file(text = sentence_groups[x], file_path = tempwav)
                                 ratio = self.compare(sentence_groups[x], tempwav)
-                                if ratio < 88:
+                                if ratio < self.minratio:
                                     raise Exception("Spoken text did not sound right - " +str(ratio))
                                 break
                             except Exception as e:
@@ -349,6 +350,7 @@ def main():
     parser.add_argument("--scan", action='store_true', help='Scan the epub to show beginning of chapters, then exit')
     parser.add_argument('--start', type=int, nargs='?', const=1, default=1, help='Chapter/part to start from')
     parser.add_argument('--end', type=int, nargs='?', const=999, default=999, help='Chapter/part to end with')
+    parser.add_argument('--minratio', type=int, nargs='?', const=88, default=88, help='Minimum match ratio between text and transcript')
     parser.add_argument('--skiplinks', action='store_true', help='Skip reading any HTML links')
     parser.add_argument('--bitrate', type=str, nargs='?', const="69k", default="69k", help="Specify bitrate for output file")
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
@@ -359,7 +361,7 @@ def main():
         args.engine = "openai"
     if args.xtts != "zzz":
         args.engine = "xtts"
-    mybook = EpubToAudiobook(source=args.sourcefile, start=args.start, end=args.end, skiplinks=args.skiplinks, engine=args.engine, debug=args.debug)
+    mybook = EpubToAudiobook(source=args.sourcefile, start=args.start, end=args.end, skiplinks=args.skiplinks, engine=args.engine, minratio=args.minratio, debug=args.debug)
     if mybook.sourcetype == 'epub':
         mybook.get_chapters_epub()
     else:

@@ -2,9 +2,9 @@ This script takes an epub (or text file) and reads it to an m4b audiobook file, 
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
-**NOTE:** BIG UPDATE for XTTS! The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the xtts-sample.m4a to get an idea of the quality you can expect.
+**NOTE: BIG UPDATE for XTTS!** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect.
 
-Example usage: `epub2tts my-book.epub --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav --start 4 --end 20`
+Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav`
 
 **NOTE:** Now with [OpenAI TTS](https://platform.openai.com/docs/guides/text-to-speech) support! It's not free, but the average cost for a few books I tested was around $7. If you use `--openai <API key>` flag epub2tts will provide a cost estimate and prompt you to approve before continuing.
 
