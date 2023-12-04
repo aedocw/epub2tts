@@ -119,7 +119,7 @@ class EpubToAudiobook:
             #strip some characters that might have caused TTS to choke
             text = self.chap2text(self.chapters[i])
             text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
-            allowed_chars = string.ascii_letters + string.digits + "-,.!? "
+            allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
             text = ''.join(c for c in text if c in allowed_chars)
             if len(text) < 150:
                 #too short to bother with
