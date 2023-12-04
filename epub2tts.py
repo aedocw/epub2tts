@@ -312,6 +312,7 @@ class EpubToAudiobook:
         wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
+        print("Replacing silences longer than one second with one second of silence...")
         for audio in wav_files:
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
