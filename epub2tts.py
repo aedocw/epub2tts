@@ -206,8 +206,10 @@ class EpubToAudiobook:
         self.model_name = model_name
         self.openai = openai
         if engine == 'xtts':
-            self.voice_samples = voice_samples.split(",")
-            voice_name = "-" + re.split('-|\d+|\.', self.voice_samples[0])[0]
+            self.voice_samples = []
+            for f in voice_samples.split(","):
+                self.voice_samples.append(os.path.abspath(f))
+            voice_name = "-" + re.split('-|\d+|\.', os.path.basename(self.voice_samples[0]))[0]
         elif engine == 'openai':
             if speaker == 'p335':
                 speaker = 'onyx'
@@ -251,7 +253,7 @@ class EpubToAudiobook:
         files = []
         position = 0
         start_time = time.time()
-        print("Reading from " + str(self.start) + " to " + str(self.end))
+        print("Reading from " + str(self.start + 1) + " to " + str(self.end))
         for i in range(self.start, self.end):
             outputwav = self.bookname + "-" + str(i+1) + ".wav"
             if os.path.isfile(outputwav):
@@ -312,7 +314,7 @@ class EpubToAudiobook:
         wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
-        print("Replacing silences longer than one second with one second of silence...")
+        print("Replacing silences longer than one second with one second of silence (" + str(len(wav_files)) + " files)")
         for audio in wav_files:
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
@@ -344,7 +346,7 @@ def main():
                         description='Read an epub (or other source) to audiobook format')
     parser.add_argument('sourcefile', type=str, help='The epub or text file to process')
     parser.add_argument('--engine', type=str, default='tts', nargs='?', const='tts', help='Which TTS to use [tts|xtts|openai]')
-    parser.add_argument('--xtts', type=str, nargs='?', const="zzz", default="zzz", help='Sample wave file(s) for XTTS training separated by commas')
+    parser.add_argument('--xtts', type=str, nargs='?', const="zzz", default="zzz", help='Sample wave file(s) for XTTS v2 training separated by commas')
     parser.add_argument('--openai', type=str, nargs='?', const="zzz", default="zzz", help='OpenAI API key if engine is OpenAI')
     parser.add_argument('--model', type=str, nargs='?', const='tts_models/en/vctk/vits', default='tts_models/en/vctk/vits', help='TTS model to use, default: tts_models/en/vctk/vits')
     parser.add_argument('--speaker', type=str, default='p335', nargs='?', const='p335', help='Speaker to use (ex p335 for VITS, or onyx for OpenAI)')
