@@ -19,7 +19,6 @@ from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-#import pysbd
 from nltk.tokenize import sent_tokenize
 import requests
 import torch, gc
@@ -222,6 +221,8 @@ class EpubToAudiobook:
         print("Total characters: " + str(total_chars))
         if engine == "xtts":
             print("Loading model: " + self.xtts_model)
+            #This will trigger model load even though we won't use tts object later
+            tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
             config = XttsConfig()
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
