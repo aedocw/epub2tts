@@ -19,7 +19,7 @@ from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-import pysbd
+from nltk.tokenize import sent_tokenize
 import requests
 import torch, gc
 import torchaudio
@@ -118,8 +118,8 @@ class EpubToAudiobook:
         for i in range(len(self.chapters)):
             #strip some characters that might have caused TTS to choke
             text = self.chap2text(self.chapters[i])
-            text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
-            allowed_chars = string.ascii_letters + string.digits + "-,.!? "
+            text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ").replace("-", ", ")
+            allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
             text = ''.join(c for c in text if c in allowed_chars)
             if len(text) < 150:
                 #too short to bother with
@@ -143,8 +143,7 @@ class EpubToAudiobook:
         #takes list of sentences to read, reads through them and saves to wave file
         t0 = time.time()
         wav_chunks = []
-        segmenter = pysbd.Segmenter(language="en", clean=True)
-        sentence_list = segmenter.segment(sentences)
+        sentence_list = sent_tokenize(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             print(sentence) if self.debug else None
@@ -206,8 +205,10 @@ class EpubToAudiobook:
         self.model_name = model_name
         self.openai = openai
         if engine == 'xtts':
-            self.voice_samples = voice_samples.split(",")
-            voice_name = "-" + re.split('-|\d+|\.', self.voice_samples[0])[0]
+            self.voice_samples = []
+            for f in voice_samples.split(","):
+                self.voice_samples.append(os.path.abspath(f))
+            voice_name = "-" + re.split('-|\d+|\.', os.path.basename(self.voice_samples[0]))[0]
         elif engine == 'openai':
             if speaker == 'p335':
                 speaker = 'onyx'
@@ -220,6 +221,8 @@ class EpubToAudiobook:
         print("Total characters: " + str(total_chars))
         if engine == "xtts":
             print("Loading model: " + self.xtts_model)
+            #This will trigger model load even though we won't use tts object later
+            tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
             config = XttsConfig()
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
@@ -251,7 +254,7 @@ class EpubToAudiobook:
         files = []
         position = 0
         start_time = time.time()
-        print("Reading from " + str(self.start) + " to " + str(self.end))
+        print("Reading from " + str(self.start + 1) + " to " + str(self.end))
         for i in range(self.start, self.end):
             outputwav = self.bookname + "-" + str(i+1) + ".wav"
             if os.path.isfile(outputwav):
@@ -259,8 +262,9 @@ class EpubToAudiobook:
             else:
                 #print("Debug is " + str(self.debug))
                 tempfiles = []
-                segmenter = pysbd.Segmenter(language="en", clean=True)
-                sentences = segmenter.segment(self.chapters_to_read[i])
+                #segmenter = pysbd.Segmenter(language="en", clean=True)
+                #sentences = segmenter.segment(self.chapters_to_read[i])
+                sentences = sent_tokenize(self.chapters_to_read[i])
                 sentence_groups = list(self.combine_sentences(sentences))
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
@@ -278,8 +282,10 @@ class EpubToAudiobook:
                                 elif engine == "tts":
                                     if model_name == 'tts_models/en/vctk/vits':
                                         #assume we're using a multi-speaker model
+                                        print(sentence_groups[x]) if self.debug else None
                                         self.tts.tts_to_file(text = sentence_groups[x], speaker = speaker, file_path = tempwav)
                                     else:
+                                        print(sentence_groups[x]) if self.debug else None
                                         self.tts.tts_to_file(text = sentence_groups[x], file_path = tempwav)
                                 ratio = self.compare(sentence_groups[x], tempwav)
                                 if ratio < self.minratio:
@@ -312,6 +318,7 @@ class EpubToAudiobook:
         wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
+        print("Replacing silences longer than one second with one second of silence (" + str(len(wav_files)) + " files)")
         for audio in wav_files:
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
@@ -343,7 +350,7 @@ def main():
                         description='Read an epub (or other source) to audiobook format')
     parser.add_argument('sourcefile', type=str, help='The epub or text file to process')
     parser.add_argument('--engine', type=str, default='tts', nargs='?', const='tts', help='Which TTS to use [tts|xtts|openai]')
-    parser.add_argument('--xtts', type=str, nargs='?', const="zzz", default="zzz", help='Sample wave file(s) for XTTS training separated by commas')
+    parser.add_argument('--xtts', type=str, nargs='?', const="zzz", default="zzz", help='Sample wave file(s) for XTTS v2 training separated by commas')
     parser.add_argument('--openai', type=str, nargs='?', const="zzz", default="zzz", help='OpenAI API key if engine is OpenAI')
     parser.add_argument('--model', type=str, nargs='?', const='tts_models/en/vctk/vits', default='tts_models/en/vctk/vits', help='TTS model to use, default: tts_models/en/vctk/vits')
     parser.add_argument('--speaker', type=str, default='p335', nargs='?', const='p335', help='Speaker to use (ex p335 for VITS, or onyx for OpenAI)')
