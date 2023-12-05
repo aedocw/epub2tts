@@ -19,7 +19,8 @@ from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-import pysbd
+#import pysbd
+from nltk.tokenize import sent_tokenize
 import requests
 import torch, gc
 import torchaudio
@@ -143,8 +144,7 @@ class EpubToAudiobook:
         #takes list of sentences to read, reads through them and saves to wave file
         t0 = time.time()
         wav_chunks = []
-        segmenter = pysbd.Segmenter(language="en", clean=True)
-        sentence_list = segmenter.segment(sentences)
+        sentence_list = sent_tokenize(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             print(sentence) if self.debug else None
@@ -261,8 +261,9 @@ class EpubToAudiobook:
             else:
                 #print("Debug is " + str(self.debug))
                 tempfiles = []
-                segmenter = pysbd.Segmenter(language="en", clean=True)
-                sentences = segmenter.segment(self.chapters_to_read[i])
+                #segmenter = pysbd.Segmenter(language="en", clean=True)
+                #sentences = segmenter.segment(self.chapters_to_read[i])
+                sentences = sent_tokenize(self.chapters_to_read[i])
                 sentence_groups = list(self.combine_sentences(sentences))
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
@@ -280,8 +281,10 @@ class EpubToAudiobook:
                                 elif engine == "tts":
                                     if model_name == 'tts_models/en/vctk/vits':
                                         #assume we're using a multi-speaker model
+                                        print(sentence_groups[x]) if self.debug else None
                                         self.tts.tts_to_file(text = sentence_groups[x], speaker = speaker, file_path = tempwav)
                                     else:
+                                        print(sentence_groups[x]) if self.debug else None
                                         self.tts.tts_to_file(text = sentence_groups[x], file_path = tempwav)
                                 ratio = self.compare(sentence_groups[x], tempwav)
                                 if ratio < self.minratio:
