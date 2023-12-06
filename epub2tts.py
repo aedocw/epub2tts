@@ -223,6 +223,10 @@ class EpubToAudiobook:
             print("Loading model: " + self.xtts_model)
             #This will trigger model load even though we won't use tts object later
             tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
+            tts = ''
+            #Don't think the next two lines are needed, but couldn't hurt just in case
+            gc.collect()
+            torch.cuda.empty_cache()
             config = XttsConfig()
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
