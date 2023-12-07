@@ -32,7 +32,7 @@ import whisper
 
 
 class EpubToAudiobook:
-    def __init__(self, source, start, end, skiplinks, engine, minratio, debug):
+    def __init__(self, source, start, end, skiplinks, engine, minratio, model_name, debug):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
@@ -53,7 +53,10 @@ class EpubToAudiobook:
             print("Can only handle epub or txt as source.")
             sys.exit()
         self.tts_dir = str(get_user_data_dir("tts"))
-        self.xtts_model = self.tts_dir + "/tts_models--multilingual--multi-dataset--xtts_v2"
+        if model_name == 'tts_models/en/vctk/vits':
+            self.xtts_model = self.tts_dir + "/tts_models--multilingual--multi-dataset--xtts_v2"
+        else:
+            self.xtts_model = self.tts_dir + "/" + model_name
         self.whispermodel = whisper.load_model("tiny")
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
@@ -118,7 +121,7 @@ class EpubToAudiobook:
         for i in range(len(self.chapters)):
             #strip some characters that might have caused TTS to choke
             text = self.chap2text(self.chapters[i])
-            text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ").replace("-", ", ")
+            text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
             allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
             text = ''.join(c for c in text if c in allowed_chars)
             if len(text) < 150:
@@ -372,7 +375,7 @@ def main():
         args.engine = "openai"
     if args.xtts != "zzz":
         args.engine = "xtts"
-    mybook = EpubToAudiobook(source=args.sourcefile, start=args.start, end=args.end, skiplinks=args.skiplinks, engine=args.engine, minratio=args.minratio, debug=args.debug)
+    mybook = EpubToAudiobook(source=args.sourcefile, start=args.start, end=args.end, skiplinks=args.skiplinks, engine=args.engine, minratio=args.minratio, model_name=args.model, debug=args.debug)
     if mybook.sourcetype == 'epub':
         mybook.get_chapters_epub()
     else:
