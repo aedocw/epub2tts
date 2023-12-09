@@ -379,7 +379,7 @@ def main():
 
     if args.openai != "zzz":
         args.engine = "openai"
-    if args.xtts != "zzz":
+    if args.xtts:
         args.engine = "xtts"
     mybook = EpubToAudiobook(source=args.sourcefile, start=args.start, end=args.end, skiplinks=args.skiplinks, engine=args.engine, minratio=args.minratio, model_name=args.model, debug=args.debug)
     if mybook.sourcetype == 'epub':
