@@ -269,10 +269,7 @@ class EpubToAudiobook:
             if os.path.isfile(outputmp3):
                 print(outputmp3 + " exists, skipping to next chapter")
             else:
-                #print("Debug is " + str(self.debug))
                 tempfiles = []
-                #segmenter = pysbd.Segmenter(language="en", clean=True)
-                #sentences = segmenter.segment(self.chapters_to_read[i])
                 sentences = sent_tokenize(self.chapters_to_read[i])
                 sentence_groups = list(self.combine_sentences(sentences))
                 for x in tqdm(range(len(sentence_groups))):
@@ -310,12 +307,10 @@ class EpubToAudiobook:
                         temp = AudioSegment.from_wav(tempwav)
                         temp.export(tempmp3, format="mp3")
                         os.remove(tempwav)
-                    #tempfiles.append(tempwav)
                     tempfiles.append(tempmp3)
-                tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
-                concatenated = sum(tempwavfiles)
-                normalized = effects.normalize(concatenated)
-                normalized.export(outputmp3, format="mp3")
+                tempmp3files = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
+                concatenated = sum(tempmp3files)
+                concatenated.export(outputmp3, format="mp3")
                 for f in tempfiles:
                     os.remove(f)
             files.append(outputmp3)
