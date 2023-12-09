@@ -138,7 +138,13 @@ class EpubToAudiobook:
     def get_chapters_text(self):
         with open(self.source, 'r') as file:
             text = file.read()
-        print(text[:256])
+        max_len = 50000
+        while len(text) > max_len:
+            pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
+            self.chapters_to_read.append(text[:pos])
+            print("Part: " + str(len(self.chapters_to_read)))
+            print(str(self.chapters_to_read[-1])[:256])
+            text = text[pos+1:]  # +1 to avoid starting the next chapter with a space
         self.chapters_to_read.append(text)
         self.end = len(self.chapters_to_read)
 
