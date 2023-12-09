@@ -6,7 +6,6 @@ import subprocess
 import sys
 import time
 import warnings
-import wave
 
 from bs4 import BeautifulSoup
 import ebooklib
@@ -80,14 +79,6 @@ class EpubToAudiobook:
                 file.write("title=Part " + str(chap) + "\n")
                 chap += 1
                 start_time += duration
-
-    def get_wav_duration(self, file_path):
-        with wave.open(file_path, 'rb') as wav_file:
-            num_frames = wav_file.getnframes()
-            frame_rate = wav_file.getframerate()
-            duration = num_frames / frame_rate
-            duration_milliseconds = duration * 1000
-            return int(duration_milliseconds)
     
     def get_mp3_duration(self, file_path):
         audio = AudioSegment.from_mp3(file_path)
@@ -154,7 +145,7 @@ class EpubToAudiobook:
         self.end = len(self.chapters_to_read)
 
     def read_chunk_xtts(self, sentences, wav_file_path):
-        #takes list of sentences to read, reads through them and saves to wave file
+        #takes list of sentences to read, reads through them and saves to file
         t0 = time.time()
         wav_chunks = []
         sentence_list = sent_tokenize(sentences)
@@ -323,7 +314,8 @@ class EpubToAudiobook:
                     tempfiles.append(tempmp3)
                 tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
-                concatenated.export(outputmp3, format="mp3")
+                normalized = effects.normalize(concatenated)
+                normalized.export(outputmp3, format="mp3")
                 for f in tempfiles:
                     os.remove(f)
             files.append(outputmp3)
@@ -375,7 +367,7 @@ def main():
                         description='Read an epub (or other source) to audiobook format')
     parser.add_argument('sourcefile', type=str, help='The epub or text file to process')
     parser.add_argument('--engine', type=str, default='tts', nargs='?', const='tts', help='Which TTS to use [tts|xtts|openai]')
-    parser.add_argument('--xtts', type=str, help='Sample wave file(s) for XTTS v2 training separated by commas')
+    parser.add_argument('--xtts', type=str, help='Sample wave/mp3 file(s) for XTTS v2 training separated by commas')
     parser.add_argument('--openai', type=str, help='OpenAI API key if engine is OpenAI')
     parser.add_argument('--model', type=str, nargs='?', const='tts_models/en/vctk/vits', default='tts_models/en/vctk/vits', help='TTS model to use, default: tts_models/en/vctk/vits')
     parser.add_argument('--speaker', type=str, default='p335', nargs='?', const='p335', help='Speaker to use (ex p335 for VITS, or onyx for OpenAI)')
