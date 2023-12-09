@@ -362,7 +362,7 @@ class EpubToAudiobook:
         self.generate_metadata(files, title, author)
         ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",self.ffmetadatafile,"-map_metadata","1","-codec","copy",self.output_filename]
         subprocess.run(ffmpeg_command)
-        #os.remove(self.ffmetadatafile)
+        os.remove(self.ffmetadatafile)
         os.remove(outputm4a)
         for f in files:
             os.remove(f)
