@@ -364,7 +364,7 @@ def main():
     parser.add_argument('sourcefile', type=str, help='The epub or text file to process')
     parser.add_argument('--engine', type=str, default='tts', nargs='?', const='tts', help='Which TTS to use [tts|xtts|openai]')
     parser.add_argument('--xtts', type=str, help='Sample wave file(s) for XTTS v2 training separated by commas')
-    parser.add_argument('--openai', type=str, nargs='?', const="zzz", default="zzz", help='OpenAI API key if engine is OpenAI')
+    parser.add_argument('--openai', type=str, help='OpenAI API key if engine is OpenAI')
     parser.add_argument('--model', type=str, nargs='?', const='tts_models/en/vctk/vits', default='tts_models/en/vctk/vits', help='TTS model to use, default: tts_models/en/vctk/vits')
     parser.add_argument('--speaker', type=str, default='p335', nargs='?', const='p335', help='Speaker to use (ex p335 for VITS, or onyx for OpenAI)')
     parser.add_argument("--scan", action='store_true', help='Scan the epub to show beginning of chapters, then exit')
@@ -377,7 +377,7 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    if args.openai != "zzz":
+    if args.openai:
         args.engine = "openai"
     if args.xtts:
         args.engine = "xtts"
