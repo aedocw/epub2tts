@@ -72,7 +72,7 @@ class EpubToAudiobook:
             file.write("ARTIST=" + str(author) + "\n")
             file.write("ALBUM=" + str(title) + "\n")
             for file_name in files:
-                duration = self.get_wav_duration(file_name)
+                duration = self.get_mp3_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
                 file.write("START=" + str(start_time) + "\n")
@@ -88,6 +88,11 @@ class EpubToAudiobook:
             duration = num_frames / frame_rate
             duration_milliseconds = duration * 1000
             return int(duration_milliseconds)
+    
+    def get_mp3_duration(self, file_path):
+        audio = AudioSegment.from_mp3(file_path)
+        duration_milliseconds = len(audio)
+        return duration_milliseconds
 
     def get_length(self, start, end, chapters_to_read):
         total_chars = 0
@@ -269,9 +274,9 @@ class EpubToAudiobook:
         start_time = time.time()
         print("Reading from " + str(self.start + 1) + " to " + str(self.end))
         for i in range(self.start, self.end):
-            outputwav = self.bookname + "-" + str(i+1) + ".wav"
-            if os.path.isfile(outputwav):
-                print(outputwav + " exists, skipping to next chapter")
+            outputmp3 = self.bookname + "-" + str(i+1) + ".mp3"
+            if os.path.isfile(outputmp3):
+                print(outputmp3 + " exists, skipping to next chapter")
             else:
                 #print("Debug is " + str(self.debug))
                 tempfiles = []
@@ -282,8 +287,9 @@ class EpubToAudiobook:
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
                     tempwav = "temp" + str(x) + ".wav"
-                    if os.path.isfile(tempwav):
-                        print(tempwav + " exists, skipping to next chunk")
+                    tempmp3 = tempwav.replace("wav", "mp3")
+                    if os.path.isfile(tempmp3):
+                        print(tempmp3 + " exists, skipping to next chunk")
                     else:
                         while retries > 0:
                             try:
@@ -310,13 +316,17 @@ class EpubToAudiobook:
                         if retries == 0:
                             print("Something is wrong with the audio (" + str(ratio) + "): " + tempwav)
                             #sys.exit()
-                    tempfiles.append(tempwav)
+                        temp = AudioSegment.from_wav(tempwav)
+                        temp.export(tempmp3, format="mp3")
+                        os.remove(tempwav)
+                    #tempfiles.append(tempwav)
+                    tempfiles.append(tempmp3)
                 tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
-                concatenated.export(outputwav, format="wav")
+                concatenated.export(outputmp3, format="mp3")
                 for f in tempfiles:
                     os.remove(f)
-            files.append(outputwav)
+            files.append(outputmp3)
             position += len(self.chapters_to_read[i])
             percentage = (position / total_chars) * 100
             print(f"{percentage:.2f}% spoken so far.")
@@ -328,11 +338,13 @@ class EpubToAudiobook:
             gc.collect()
             torch.cuda.empty_cache()
         # Load all WAV files and concatenate into one object
-        wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+        #wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+        mp3_files = [AudioSegment.from_mp3(f"{f}") for f in files]
+
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
-        print("Replacing silences longer than one second with one second of silence (" + str(len(wav_files)) + " files)")
-        for audio in wav_files:
+        print("Replacing silences longer than one second with one second of silence (" + str(len(mp3_files)) + " files)")
+        for audio in mp3_files:
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
             # Iterate through each chunk
@@ -350,7 +362,7 @@ class EpubToAudiobook:
         self.generate_metadata(files, title, author)
         ffmpeg_command = ["ffmpeg","-i",outputm4a,"-i",self.ffmetadatafile,"-map_metadata","1","-codec","copy",self.output_filename]
         subprocess.run(ffmpeg_command)
-        os.remove(self.ffmetadatafile)
+        #os.remove(self.ffmetadatafile)
         os.remove(outputm4a)
         for f in files:
             os.remove(f)
