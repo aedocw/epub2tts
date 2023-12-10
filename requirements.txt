@@ -1,6 +1,7 @@
 beautifulsoup4
 ebooklib
 fuzzywuzzy
+Gooey
 newspaper3k
 nltk
 noisereduce
