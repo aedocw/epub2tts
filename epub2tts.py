@@ -306,13 +306,13 @@ class EpubToAudiobook:
                             #sys.exit()
                         temp = AudioSegment.from_wav(tempwav)
                         temp.export(tempflac, format="flac")
-                        #os.remove(tempwav)
+                        os.remove(tempwav)
                     tempfiles.append(tempflac)
                 tempflacfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempflacfiles)
                 concatenated.export(outputflac, format="flac")
-                #for f in tempfiles:
-                #    os.remove(f)
+                for f in tempfiles:
+                    os.remove(f)
             files.append(outputflac)
             position += len(self.chapters_to_read[i])
             percentage = (position / total_chars) * 100
@@ -324,8 +324,7 @@ class EpubToAudiobook:
             print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
             gc.collect()
             torch.cuda.empty_cache()
-        # Load all WAV files and concatenate into one object
-        #wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+        # Load all FLAC files and concatenate into one object
         flac_files = [AudioSegment.from_file(f"{f}") for f in files]
 
         one_sec_silence = AudioSegment.silent(duration=1000)
@@ -351,8 +350,8 @@ class EpubToAudiobook:
         subprocess.run(ffmpeg_command)
         os.remove(self.ffmetadatafile)
         os.remove(outputm4a)
-        #for f in files:
-        #    os.remove(f)
+        for f in files:
+            os.remove(f)
         print(self.output_filename + " complete")
 
 def main():
