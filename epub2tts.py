@@ -308,7 +308,7 @@ class EpubToAudiobook:
                         temp.export(tempflac, format="flac")
                         #os.remove(tempwav)
                     tempfiles.append(tempflac)
-                tempflacfiles = [AudioSegment.from_flac(f"{f}") for f in tempfiles]
+                tempflacfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempflacfiles)
                 concatenated.export(outputflac, format="flac")
                 #for f in tempfiles:
