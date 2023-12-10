@@ -6,7 +6,6 @@ import subprocess
 import sys
 import time
 import warnings
-import wave
 
 from bs4 import BeautifulSoup
 import ebooklib
@@ -72,7 +71,7 @@ class EpubToAudiobook:
             file.write("ARTIST=" + str(author) + "\n")
             file.write("ALBUM=" + str(title) + "\n")
             for file_name in files:
-                duration = self.get_wav_duration(file_name)
+                duration = self.get_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
                 file.write("START=" + str(start_time) + "\n")
@@ -80,14 +79,11 @@ class EpubToAudiobook:
                 file.write("title=Part " + str(chap) + "\n")
                 chap += 1
                 start_time += duration
-
-    def get_wav_duration(self, file_path):
-        with wave.open(file_path, 'rb') as wav_file:
-            num_frames = wav_file.getnframes()
-            frame_rate = wav_file.getframerate()
-            duration = num_frames / frame_rate
-            duration_milliseconds = duration * 1000
-            return int(duration_milliseconds)
+    
+    def get_duration(self, file_path):
+        audio = AudioSegment.from_file(file_path)
+        duration_milliseconds = len(audio)
+        return duration_milliseconds
 
     def get_length(self, start, end, chapters_to_read):
         total_chars = 0
@@ -149,7 +145,7 @@ class EpubToAudiobook:
         self.end = len(self.chapters_to_read)
 
     def read_chunk_xtts(self, sentences, wav_file_path):
-        #takes list of sentences to read, reads through them and saves to wave file
+        #takes list of sentences to read, reads through them and saves to file
         t0 = time.time()
         wav_chunks = []
         sentence_list = sent_tokenize(sentences)
@@ -269,21 +265,19 @@ class EpubToAudiobook:
         start_time = time.time()
         print("Reading from " + str(self.start + 1) + " to " + str(self.end))
         for i in range(self.start, self.end):
-            outputwav = self.bookname + "-" + str(i+1) + ".wav"
-            if os.path.isfile(outputwav):
-                print(outputwav + " exists, skipping to next chapter")
+            outputflac = self.bookname + "-" + str(i+1) + "flac"
+            if os.path.isfile(outputflac):
+                print(outputflac + " exists, skipping to next chapter")
             else:
-                #print("Debug is " + str(self.debug))
                 tempfiles = []
-                #segmenter = pysbd.Segmenter(language="en", clean=True)
-                #sentences = segmenter.segment(self.chapters_to_read[i])
                 sentences = sent_tokenize(self.chapters_to_read[i])
                 sentence_groups = list(self.combine_sentences(sentences))
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
                     tempwav = "temp" + str(x) + ".wav"
-                    if os.path.isfile(tempwav):
-                        print(tempwav + " exists, skipping to next chunk")
+                    tempflac = tempwav.replace("wav", "flac")
+                    if os.path.isfile(tempflac):
+                        print(tempflac + " exists, skipping to next chunk")
                     else:
                         while retries > 0:
                             try:
@@ -310,13 +304,16 @@ class EpubToAudiobook:
                         if retries == 0:
                             print("Something is wrong with the audio (" + str(ratio) + "): " + tempwav)
                             #sys.exit()
-                    tempfiles.append(tempwav)
-                tempwavfiles = [AudioSegment.from_mp3(f"{f}") for f in tempfiles]
-                concatenated = sum(tempwavfiles)
-                concatenated.export(outputwav, format="wav")
+                        temp = AudioSegment.from_wav(tempwav)
+                        temp.export(tempflac, format="flac")
+                        os.remove(tempwav)
+                    tempfiles.append(tempflac)
+                tempflacfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
+                concatenated = sum(tempflacfiles)
+                concatenated.export(outputflac, format="flac")
                 for f in tempfiles:
                     os.remove(f)
-            files.append(outputwav)
+            files.append(outputflac)
             position += len(self.chapters_to_read[i])
             percentage = (position / total_chars) * 100
             print(f"{percentage:.2f}% spoken so far.")
@@ -327,12 +324,13 @@ class EpubToAudiobook:
             print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
             gc.collect()
             torch.cuda.empty_cache()
-        # Load all WAV files and concatenate into one object
-        wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
+        # Load all FLAC files and concatenate into one object
+        flac_files = [AudioSegment.from_file(f"{f}") for f in files]
+
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
-        print("Replacing silences longer than one second with one second of silence (" + str(len(wav_files)) + " files)")
-        for audio in wav_files:
+        print("Replacing silences longer than one second with one second of silence (" + str(len(flac_files)) + " files)")
+        for audio in flac_files:
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
             # Iterate through each chunk
@@ -363,7 +361,7 @@ def main():
                         description='Read an epub (or other source) to audiobook format')
     parser.add_argument('sourcefile', type=str, help='The epub or text file to process')
     parser.add_argument('--engine', type=str, default='tts', nargs='?', const='tts', help='Which TTS to use [tts|xtts|openai]')
-    parser.add_argument('--xtts', type=str, help='Sample wave file(s) for XTTS v2 training separated by commas')
+    parser.add_argument('--xtts', type=str, help='Sample wave/mp3 file(s) for XTTS v2 training separated by commas')
     parser.add_argument('--openai', type=str, help='OpenAI API key if engine is OpenAI')
     parser.add_argument('--model', type=str, nargs='?', const='tts_models/en/vctk/vits', default='tts_models/en/vctk/vits', help='TTS model to use, default: tts_models/en/vctk/vits')
     parser.add_argument('--speaker', type=str, default='p335', nargs='?', const='p335', help='Speaker to use (ex p335 for VITS, or onyx for OpenAI)')
