@@ -338,14 +338,18 @@ class EpubToAudiobook:
         concatenated = AudioSegment.empty()
         print("Replacing silences longer than one second with one second of silence (" + str(len(flac_files)) + " files)")
         for audio in flac_files:
+            # This AudioSegment is dedicated for each file.
+            audio_modified = AudioSegment.empty()
             # Split audio into chunks where detected silence is longer than one second
             chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
             # Iterate through each chunk
             for i, chunk in enumerate(tqdm(chunks)):
-                concatenated += chunk
-                concatenated += one_sec_silence
+                audio_modified += chunk
+                audio_modified += one_sec_silence
             #add extra 2sec silence at the end of each part/chapter
-            concatenated += two_sec_silence
+            audio_modified += two_sec_silence
+            # Append modified audio to the final audio segment
+            concatenated += audio_modified
         outputm4a = self.output_filename.replace("m4b", "m4a")
         concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
         if self.sourcetype == 'epub':
