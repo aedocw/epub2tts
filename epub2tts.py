@@ -109,6 +109,13 @@ class EpubToAudiobook:
                 output += '{} '.format(t)
         return output
 
+    def prep_text(self, text):
+        #remove characters that often mess up TTS
+        text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
+        allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
+        text = ''.join(c for c in text if c in allowed_chars)
+        return(text)
+
     def get_chapters_epub(self):
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
@@ -117,9 +124,7 @@ class EpubToAudiobook:
         for i in range(len(self.chapters)):
             #strip some characters that might have caused TTS to choke
             text = self.chap2text(self.chapters[i])
-            text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
-            allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
-            text = ''.join(c for c in text if c in allowed_chars)
+            text = prep_text(text)
             if len(text) < 150:
                 #too short to bother with
                 continue
@@ -134,6 +139,7 @@ class EpubToAudiobook:
     def get_chapters_text(self):
         with open(self.source, 'r') as file:
             text = file.read()
+        text = prep_text(text)
         max_len = 50000
         while len(text) > max_len:
             pos = text.rfind(' ', 0, max_len)  # find the last space within the limit
