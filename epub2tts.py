@@ -265,7 +265,7 @@ class EpubToAudiobook:
         start_time = time.time()
         print("Reading from " + str(self.start + 1) + " to " + str(self.end))
         for i in range(self.start, self.end):
-            outputflac = self.bookname + "-" + str(i+1) + "flac"
+            outputflac = self.bookname + "-" + str(i+1) + ".flac"
             if os.path.isfile(outputflac):
                 print(outputflac + " exists, skipping to next chapter")
             else:
@@ -328,6 +328,7 @@ class EpubToAudiobook:
         flac_files = [AudioSegment.from_file(f"{f}") for f in files]
 
         one_sec_silence = AudioSegment.silent(duration=1000)
+        two_sec_silence = AudioSegment.silent(duration=2000)
         concatenated = AudioSegment.empty()
         print("Replacing silences longer than one second with one second of silence (" + str(len(flac_files)) + " files)")
         for audio in flac_files:
@@ -337,6 +338,8 @@ class EpubToAudiobook:
             for i, chunk in enumerate(tqdm(chunks)):
                 concatenated += chunk
                 concatenated += one_sec_silence
+            #add extra 2sec silence at the end of each part/chapter
+            concatenated += two_sec_silence
         outputm4a = self.output_filename.replace("m4b", "m4a")
         concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
         if self.sourcetype == 'epub':
