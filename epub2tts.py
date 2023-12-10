@@ -81,7 +81,7 @@ class EpubToAudiobook:
                 start_time += duration
     
     def get_duration(self, file_path):
-        audio = AudioSegment.from_flac(file_path)
+        audio = AudioSegment.from_file(file_path)
         duration_milliseconds = len(audio)
         return duration_milliseconds
 
@@ -326,7 +326,7 @@ class EpubToAudiobook:
             torch.cuda.empty_cache()
         # Load all WAV files and concatenate into one object
         #wav_files = [AudioSegment.from_wav(f"{f}") for f in files]
-        flac_files = [AudioSegment.from_flac(f"{f}") for f in files]
+        flac_files = [AudioSegment.from_file(f"{f}") for f in files]
 
         one_sec_silence = AudioSegment.silent(duration=1000)
         concatenated = AudioSegment.empty()
