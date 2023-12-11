@@ -18,6 +18,7 @@ from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+import nltk
 from nltk.tokenize import sent_tokenize
 import requests
 import torch, gc
@@ -62,6 +63,17 @@ class EpubToAudiobook:
             self.device = "cuda"
         else:
             self.device = "cpu"
+        #Make sure we've got nltk punkt
+        ensure_punkt()
+
+
+    def ensure_punkt(self):
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt')
+    
+    # Call the function to ensure punkt is downloaded
 
     def generate_metadata(self, files, title, author):
         chap = 1
