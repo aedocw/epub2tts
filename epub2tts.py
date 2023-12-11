@@ -64,7 +64,7 @@ class EpubToAudiobook:
         else:
             self.device = "cpu"
         #Make sure we've got nltk punkt
-        ensure_punkt()
+        self.ensure_punkt()
 
 
     def ensure_punkt(self):
