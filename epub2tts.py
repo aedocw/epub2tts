@@ -28,6 +28,7 @@ from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from TTS.utils.generic_utils import get_user_data_dir
 from tqdm import tqdm
+from unidecode import unidecode
 import whisper
 
 
@@ -121,9 +122,13 @@ class EpubToAudiobook:
                 output += '{} '.format(t)
         return output
 
-    def prep_text(self, text):
+    def prep_text(self, text_in):
         #remove characters that often mess up TTS
-        text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
+        #Replace/match to closest unicode char
+        text = unidecode(text_in)
+        #Replace some chars with comma to improve TTS by introducing a pause
+        text = text.replace("--", ", ").replace("—", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ").replace("’", "'").replace('\n', ' \n')
+        #drop everything that is not a letter, digit, or one of these punctuations
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
         text = ''.join(c for c in text if c in allowed_chars)
         return(text)
@@ -134,16 +139,14 @@ class EpubToAudiobook:
                 self.chapters.append(item.get_content())
 
         for i in range(len(self.chapters)):
-            #strip some characters that might have caused TTS to choke
-            text = self.chap2text(self.chapters[i])
-            text = self.prep_text(text)
+            text = self.prep_text(self.chap2text(self.chapters[i]))
             if len(text) < 150:
                 #too short to bother with
                 continue
             print("Length: " + str(len(text)))
             print("Part: " + str(len(self.chapters_to_read) + 1))
             print(text[:256])
-            self.chapters_to_read.append(text)  # append the last piece of text (shorter than max_len)
+            self.chapters_to_read.append(text)
         print("Number of chapters to read: " + str(len(self.chapters_to_read)))
         if self.end == 999:
             self.end = len(self.chapters_to_read)
