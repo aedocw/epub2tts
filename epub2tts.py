@@ -127,7 +127,7 @@ class EpubToAudiobook:
         #Replace/match to closest unicode char
         text = unidecode(text_in)
         #Replace some chars with comma to improve TTS by introducing a pause
-        text = text.replace("--", ", ").replace("—", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ").replace('\n', ' \n')
+        text = text.replace("--", ", ").replace("—", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ").replace("’", "'").replace('\n', ' \n')
         #drop everything that is not a letter, digit, or one of these punctuations
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
         text = ''.join(c for c in text if c in allowed_chars)
