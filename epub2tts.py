@@ -331,23 +331,7 @@ class EpubToAudiobook:
                     tempfiles.append(tempflac)
                 tempflacfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempflacfiles)
-                #remove silence, then export to flac
-                print("Replacing silences longer than one second with one second of silence (" + outputflac + ")")
-                one_sec_silence = AudioSegment.silent(duration=1000)
-                two_sec_silence = AudioSegment.silent(duration=2000)
-                # This AudioSegment is dedicated for each file.
-                audio_modified = AudioSegment.empty()
-                # Split audio into chunks where detected silence is longer than one second
-                chunks = split_on_silence(concatenated, min_silence_len=1000, silence_thresh=-50)
-                # Iterate through each chunk
-                for i, chunk in enumerate(tqdm(chunks)):
-                    audio_modified += chunk
-                    audio_modified += one_sec_silence
-                #add extra 2sec silence at the end of each part/chapter if it's an epub
-                if self.sourcetype == 'epub':
-                    audio_modified += two_sec_silence
-                # Write modified audio to the final audio segment
-                audio_modified.export(outputflac, format="flac")
+                concatenated.export(outputflac, format="flac")
                 for f in tempfiles:
                     os.remove(f)
             files.append(outputflac)
@@ -363,9 +347,25 @@ class EpubToAudiobook:
             torch.cuda.empty_cache()
         # Load all FLAC files and concatenate into one object
         flac_files = [AudioSegment.from_file(f"{f}") for f in files]
+
+        one_sec_silence = AudioSegment.silent(duration=1000)
+        two_sec_silence = AudioSegment.silent(duration=2000)
         concatenated = AudioSegment.empty()
+        print("Replacing silences longer than one second with one second of silence (" + str(len(flac_files)) + " files)")
         for audio in flac_files:
-            concatenated += audio
+            # This AudioSegment is dedicated for each file.
+            audio_modified = AudioSegment.empty()
+            # Split audio into chunks where detected silence is longer than one second
+            chunks = split_on_silence(audio, min_silence_len=1000, silence_thresh=-50)
+            # Iterate through each chunk
+            for i, chunk in enumerate(tqdm(chunks)):
+                audio_modified += chunk
+                audio_modified += one_sec_silence
+            #add extra 2sec silence at the end of each part/chapter if it's an epub
+            if self.sourcetype == 'epub':
+                audio_modified += two_sec_silence
+            # Append modified audio to the final audio segment
+            concatenated += audio_modified
         outputm4a = self.output_filename.replace("m4b", "m4a")
         concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
         if self.sourcetype == 'epub':
