@@ -340,7 +340,7 @@ class EpubToAudiobook:
                 # Split audio into chunks where detected silence is longer than one second
                 chunks = split_on_silence(concatenated, min_silence_len=1000, silence_thresh=-50)
                 # Iterate through each chunk
-                for i, chunk in enumerate(tqdm(chunks)):
+                for chunkindex, chunk in enumerate(tqdm(chunks)):
                     audio_modified += chunk
                     audio_modified += one_sec_silence
                 #add extra 2sec silence at the end of each part/chapter if it's an epub
