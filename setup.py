@@ -10,7 +10,7 @@ setup(
     author_email='doc@aedo.net',
     url='https://github.com/aedocw/epub2tts',
     license='Apache License, Version 2.0',
-    version='2.1.6',
+    version='2.1.8',
     packages=find_packages(),
     install_requires=requirements,
     py_modules=['epub2tts'],
