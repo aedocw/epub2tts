@@ -17,7 +17,7 @@ Usage:
 
   TEXT: `epub2tts my-book.txt`
 
-To use Coqui XTTS, add: `--xtts <sample-1.wav>,<sample-2.wav>,<sample-3.wav>` (GPU required, slow but sounds amazing!)
+To use Coqui XTTS, add: `--xtts <sample-1.wav>,<sample-2.wav>,<sample-3.wav> --language 'en' book.epub` (slow but sounds amazing!)
 
 To use OpenAI TTS, add: `--openai <your API key>` (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
 
