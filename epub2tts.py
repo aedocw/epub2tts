@@ -288,7 +288,7 @@ class EpubToAudiobook:
         if engine == "xtts":
             if (
                 torch.cuda.is_available()
-                and torch.cuda.get_device_properties(0).total_memory > 7500000000
+                and torch.cuda.get_device_properties(0).total_memory > 3500000000
             ):
                 print("Using GPU")
                 self.device = "cuda"
