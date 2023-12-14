@@ -263,7 +263,7 @@ class EpubToAudiobook:
             else:
                 yield combined
                 combined = sentence
-        yield combined
+        yield combined.replace("  ", " ")
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
