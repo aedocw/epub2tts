@@ -158,7 +158,7 @@ class EpubToAudiobook:
         )
 
         if self.language != "en":
-            text.replace(".", " \n")
+            text = text.replace(".", ",")
 
         return text
 
