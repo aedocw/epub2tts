@@ -391,7 +391,7 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
-                                            language=self.language
+                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
