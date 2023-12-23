@@ -493,8 +493,9 @@ class EpubToAudiobook:
         subprocess.run(ffmpeg_command)
         os.remove(self.ffmetadatafile)
         os.remove(outputm4a)
-        for f in files:
-            os.remove(f)
+        if not self.debug: # Leave the files if debugging
+            for f in files:
+                os.remove(f)
         print(self.output_filename + " complete")
 
 
