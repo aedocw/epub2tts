@@ -40,6 +40,7 @@ class EpubToAudiobook:
         model_name,
         debug,
         language,
+        skipfootnotes,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -47,6 +48,7 @@ class EpubToAudiobook:
         self.end = end
         self.language = language
         self.skiplinks = skiplinks
+        self.skipfootnotes = skipfootnotes
         self.engine = engine
         self.minratio = minratio
         self.debug = debug
@@ -154,7 +156,7 @@ class EpubToAudiobook:
             .replace("«", " ")
             .replace("»", " ")
             .replace("&", " and ")
-            .replace(" gnu ", " new ")
+            .replace(" GNU ", " new ")
             .replace("\n", " \n")
             .strip()
         )
@@ -163,6 +165,10 @@ class EpubToAudiobook:
             text = text.replace(".", ",")
 
         return text
+
+    def exclude_footnotes(self, text):
+        pattern = r'\s*\d+\.\s.*$'  # Matches lines starting with numbers followed by a dot and whitespace
+        return re.sub(pattern, '', text, flags=re.MULTILINE)
 
     def get_chapters_epub(self):
         for item in self.book.get_items():
@@ -176,7 +182,11 @@ class EpubToAudiobook:
                 continue
             print("Length: " + str(len(text)))
             print("Part: " + str(len(self.chapters_to_read) + 1))
-            print(text[:1024])
+            if self.skipfootnotes:
+                text = self.exclude_footnotes(text)
+            if self.skipfootnotes and text.startswith("Footnotes"):
+                continue
+            print(text[:256])
             self.chapters_to_read.append(text)
         print("Number of chapters to read: " + str(len(self.chapters_to_read)))
         if self.end == 999:
@@ -563,7 +573,14 @@ def main():
         help="Minimum match ratio between text and transcript",
     )
     parser.add_argument(
-        "--skiplinks", action="store_true", help="Skip reading any HTML links"
+        "--skiplinks", 
+        action="store_true", 
+        help="Skip reading any HTML links"
+    )
+    parser.add_argument(
+        "--skipfootnotes", 
+        action="store_true", 
+        help="Try to skip reading footnotes"
     )
     parser.add_argument(
         "--bitrate",
@@ -591,6 +608,7 @@ def main():
         model_name=args.model,
         debug=args.debug,
         language=args.language,
+        skipfootnotes=args.skipfootnotes,
     )
 
     print("Language selected: " + mybook.language)
