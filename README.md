@@ -2,7 +2,12 @@ This script takes an epub (or text file) and reads it to an m4b audiobook file, 
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
-**NOTE: BIG UPDATE for XTTS!** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect. Also take a look in the utils directory for notes on finetuning your model for exceptional results.
+**NOTE:** The Coqui team released their curated XTTS voice models recently, and they sound great. A recent update here
+allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required)
+
+Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black"`
+
+**NOTE:** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect. Also take a look in the utils directory for notes on finetuning your model for exceptional results. (GPU required)
 
 Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav`
 

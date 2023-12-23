@@ -285,12 +285,15 @@ class EpubToAudiobook:
         self.model_name = model_name
         self.openai = openai
         if engine == "xtts":
-            self.voice_samples = []
-            for f in voice_samples.split(","):
-                self.voice_samples.append(os.path.abspath(f))
-            voice_name = (
-                "-" + re.split("-|\d+|\.", os.path.basename(self.voice_samples[0]))[0]
-            )
+            if voice_samples != '':
+                self.voice_samples = []
+                for f in voice_samples.split(","):
+                    self.voice_samples.append(os.path.abspath(f))
+                voice_name = (
+                    "-" + re.split("-|\d+|\.", os.path.basename(self.voice_samples[0]))[0]
+                )
+            else:
+                voice_name = speaker.replace(" ", "-").lower()
         elif engine == "openai":
             if speaker == "p335":
                 speaker = "onyx"
@@ -313,12 +316,9 @@ class EpubToAudiobook:
                 self.device = "cpu"
 
             print("Loading model: " + self.xtts_model)
-            # This will trigger model load even though we won't use tts object later
+            # This will trigger model load even though we might not use tts object later
             tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
             tts = ""
-            # Don't think the next two lines are needed, but couldn't hurt just in case
-            gc.collect()
-            torch.cuda.empty_cache()
             config = XttsConfig()
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
@@ -383,7 +383,7 @@ class EpubToAudiobook:
                                     )
                                     response.stream_to_file(tempwav)
                                 elif engine == "tts":
-                                    if model_name == "tts_models/en/vctk/vits":
+                                    if model_name == "tts_models/en/vctk/vits" or model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                                         # assume we're using a multi-speaker model
                                         print(
                                             sentence_groups[x]
@@ -391,6 +391,7 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
+                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
@@ -599,6 +600,10 @@ def main():
         args.engine = "openai"
     if args.xtts:
         args.engine = "xtts"
+    if args.speaker != "" and args.engine == "xtts":
+        #we are using a Coqui XTTS voice
+        args.engine = "tts"
+        args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
