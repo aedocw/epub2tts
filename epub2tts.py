@@ -391,7 +391,6 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
-                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
@@ -598,9 +597,9 @@ def main():
 
     if args.openai:
         args.engine = "openai"
-    if args.xtts:
+    elif args.xtts:
         args.engine = "xtts"
-    if args.speaker != "" and args.engine == "xtts":
+    elif args.speaker != "" and args.engine == "xtts" and args.model != "":
         #we are using a Coqui XTTS voice
         args.engine = "tts"
         args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
