@@ -383,7 +383,7 @@ class EpubToAudiobook:
                                     )
                                     response.stream_to_file(tempwav)
                                 elif engine == "tts":
-                                    if model_name == "tts_models/en/vctk/vits" or model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+                                    if model_name == "tts_models/en/vctk/vits":
                                         # assume we're using a multi-speaker model
                                         print(
                                             sentence_groups[x]
@@ -391,6 +391,16 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
+                                            file_path=tempwav,
+                                        )
+                                    elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+                                        print(
+                                            sentence_groups[x]
+                                        ) if self.debug else None
+                                        self.tts.tts_to_file(
+                                            text=sentence_groups[x],
+                                            speaker=speaker,
+                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
