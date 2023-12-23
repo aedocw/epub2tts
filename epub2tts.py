@@ -151,12 +151,16 @@ class EpubToAudiobook:
             .replace("’", "'")
             .replace(" . . . ", ", ")
             .replace("... ", ", ")
+            .replace("«", " ")
+            .replace("»", " ")
+            .replace("&", " and ")
+            .replace(" gnu ", " new ")
             .replace("\n", " \n")
             .strip()
         )
 
         if self.language != "en":
-            text.replace(".", " \n")
+            text = text.replace(".", ",")
 
         return text
 
