@@ -363,7 +363,7 @@ class EpubToAudiobook:
             else:
                 tempfiles = []
                 sentences = sent_tokenize(self.chapters_to_read[i])
-                if engine == "xtts" and speaker != "":
+                if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
                     length = 500
                 else:
