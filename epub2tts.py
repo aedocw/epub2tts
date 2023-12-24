@@ -379,6 +379,8 @@ class EpubToAudiobook:
                         while retries > 0:
                             try:
                                 if engine == "xtts":
+                                    if self.language != "en":
+                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                     self.read_chunk_xtts(sentence_groups[x], tempwav)
                                 elif engine == "openai":
                                     response = client.audio.speech.create(
