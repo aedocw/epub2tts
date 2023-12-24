@@ -363,7 +363,12 @@ class EpubToAudiobook:
             else:
                 tempfiles = []
                 sentences = sent_tokenize(self.chapters_to_read[i])
-                sentence_groups = list(self.combine_sentences(sentences))
+                if engine == "xtts" and speaker != "":
+                    #we are using coqui voice, so make smaller chunks
+                    length = 500
+                else:
+                    length = 1000
+                sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
                     tempwav = "temp" + str(x) + ".wav"
@@ -395,6 +400,7 @@ class EpubToAudiobook:
                                         )
                                     elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                                         print(
+                                            "text to read: " +
                                             sentence_groups[x]
                                         ) if self.debug else None
                                         self.tts.tts_to_file(
