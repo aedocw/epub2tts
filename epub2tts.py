@@ -160,10 +160,6 @@ class EpubToAudiobook:
             .replace("\n", " \n")
             .strip()
         )
-
-        #if self.language != "en":
-        #    text = text.replace(".", ",")
-
         return text
 
     def exclude_footnotes(self, text):
