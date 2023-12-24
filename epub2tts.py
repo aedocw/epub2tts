@@ -160,10 +160,6 @@ class EpubToAudiobook:
             .replace("\n", " \n")
             .strip()
         )
-
-        if self.language != "en":
-            text = text.replace(".", ",")
-
         return text
 
     def exclude_footnotes(self, text):
@@ -363,7 +359,12 @@ class EpubToAudiobook:
             else:
                 tempfiles = []
                 sentences = sent_tokenize(self.chapters_to_read[i])
-                sentence_groups = list(self.combine_sentences(sentences))
+                if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+                    #we are using coqui voice, so make smaller chunks
+                    length = 500
+                else:
+                    length = 1000
+                sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
                     retries = 1
                     tempwav = "temp" + str(x) + ".wav"
@@ -374,6 +375,8 @@ class EpubToAudiobook:
                         while retries > 0:
                             try:
                                 if engine == "xtts":
+                                    if self.language != "en":
+                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                     self.read_chunk_xtts(sentence_groups[x], tempwav)
                                 elif engine == "openai":
                                     response = client.audio.speech.create(
@@ -394,7 +397,10 @@ class EpubToAudiobook:
                                             file_path=tempwav,
                                         )
                                     elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+                                        if self.language != "en":
+                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                         print(
+                                            "text to read: " +
                                             sentence_groups[x]
                                         ) if self.debug else None
                                         self.tts.tts_to_file(
