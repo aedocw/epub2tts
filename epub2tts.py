@@ -161,8 +161,8 @@ class EpubToAudiobook:
             .strip()
         )
 
-        if self.language != "en":
-            text = text.replace(".", ",")
+        #if self.language != "en":
+        #    text = text.replace(".", ",")
 
         return text
 
@@ -399,6 +399,8 @@ class EpubToAudiobook:
                                             file_path=tempwav,
                                         )
                                     elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+                                        if self.language != "en":
+                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                         print(
                                             "text to read: " +
                                             sentence_groups[x]
