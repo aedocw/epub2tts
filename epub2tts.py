@@ -326,6 +326,7 @@ class EpubToAudiobook:
             )
 
             if self.device == "cuda":
+                print("VRAM: " + str(torch.cuda.get_device_properties(0).total_memory))
                 self.model.cuda()
 
             print("Computing speaker latents...")
