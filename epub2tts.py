@@ -303,12 +303,14 @@ class EpubToAudiobook:
         if engine == "xtts":
             if (
                 torch.cuda.is_available()
-                and torch.cuda.get_device_properties(0).total_memory > 3500000000
+# Skip VRAM check for now
+#               and torch.cuda.get_device_properties(0).total_memory > 3500000000
             ):
                 print("Using GPU")
+                print("VRAM: " + str(torch.cuda.get_device_properties(0).total_memory))
                 self.device = "cuda"
             else:
-                print("Not enough VRAM on GPU. Using CPU")
+                print("Not enough VRAM on GPU or GPU not found. Using CPU")
                 self.device = "cpu"
 
             print("Loading model: " + self.xtts_model)
