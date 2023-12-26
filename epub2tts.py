@@ -303,14 +303,13 @@ class EpubToAudiobook:
         if engine == "xtts":
             if (
                 torch.cuda.is_available()
-# Skip VRAM check for now
-#               and torch.cuda.get_device_properties(0).total_memory > 3500000000
+                and torch.cuda.get_device_properties(0).total_memory > 3500000000
             ):
                 print("Using GPU")
                 print("VRAM: " + str(torch.cuda.get_device_properties(0).total_memory))
                 self.device = "cuda"
             else:
-                print("Not enough VRAM on GPU or GPU not found. Using CPU")
+                print("Not enough VRAM on GPU or CUDA not found. Using CPU")
                 self.device = "cpu"
 
             print("Loading model: " + self.xtts_model)
@@ -419,7 +418,10 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x], file_path=tempwav
                                         )
-                                ratio = self.compare(sentence_groups[x], tempwav)
+                                if self.minratio > 0:
+                                    ratio = self.compare(sentence_groups[x], tempwav)
+                                else:
+                                    ratio = self.minratio
                                 if ratio < self.minratio:
                                     raise Exception(
                                         "Spoken text did not sound right - "
@@ -590,7 +592,7 @@ def main():
         nargs="?",
         const=88,
         default=88,
-        help="Minimum match ratio between text and transcript",
+        help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
     parser.add_argument(
         "--skiplinks", 

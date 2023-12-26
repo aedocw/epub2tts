@@ -38,6 +38,8 @@ To specify which chapter to end on (ex 20): `--end 20`
 
 To specify bitrate (ex 30k): `--bitrate 30k`
 
+To specify minimum comparison ratio between transcript of spoken text and original, default 88. Set to 0 to disable this comparison with whisper: `--minratio 95`
+
 If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
 
 ## DOCKER INSTRUCTIONS:
