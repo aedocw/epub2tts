@@ -419,7 +419,7 @@ class EpubToAudiobook:
                                             text=sentence_groups[x], file_path=tempwav
                                         )
                                 if self.minratio == 0 or model_name == "tts_models/en/vctk/vits":
-                                    print("Skipping whisper transcript comparison") if self.debug else None
+                                    print("Skipping whisper transcript comparison")
                                     ratio = self.minratio
                                 else:
                                     ratio = self.compare(sentence_groups[x], tempwav)
