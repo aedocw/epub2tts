@@ -217,7 +217,7 @@ class EpubToAudiobook:
                 self.speaker_embedding,
                 stream_chunk_size=60,
                 temperature=0.60,
-                repetition_penalty=10.0,
+                repetition_penalty=15.0,
                 enable_text_splitting=True,
             )
             for j, chunk in enumerate(chunks):
@@ -360,7 +360,9 @@ class EpubToAudiobook:
                 print(outputflac + " exists, skipping to next chapter")
             else:
                 tempfiles = []
-                sentences = sent_tokenize(self.chapters_to_read[i])
+                chapter = "Part " + str(i + 1) + ". " + self.chapters_to_read[i]
+                #sentences = sent_tokenize(self.chapters_to_read[i])
+                sentences = sent_tokenize(chapter)
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
                     length = 500
@@ -368,7 +370,7 @@ class EpubToAudiobook:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
-                    retries = 1
+                    retries = 2
                     tempwav = "temp" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
                     if os.path.isfile(tempflac):
@@ -591,7 +593,7 @@ def main():
         "--minratio",
         type=int,
         nargs="?",
-        const=88,
+        const=93,
         default=88,
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
