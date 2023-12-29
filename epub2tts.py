@@ -354,13 +354,16 @@ class EpubToAudiobook:
         position = 0
         start_time = time.time()
         print("Reading from " + str(self.start + 1) + " to " + str(self.end))
+        partnum = 1
         for i in range(self.start, self.end):
             outputflac = self.bookname + "-" + str(i + 1) + ".flac"
             if os.path.isfile(outputflac):
                 print(outputflac + " exists, skipping to next chapter")
+                partnum += 1
             else:
                 tempfiles = []
-                chapter = "Part " + str(i + 1) + ". " + self.chapters_to_read[i]
+                chapter = "Part " + str(partnum) + ". " + self.chapters_to_read[i]
+                partnum += 1
                 #sentences = sent_tokenize(self.chapters_to_read[i])
                 sentences = sent_tokenize(chapter)
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
