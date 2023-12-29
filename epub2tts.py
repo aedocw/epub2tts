@@ -41,6 +41,7 @@ class EpubToAudiobook:
         debug,
         language,
         skipfootnotes,
+        sayparts,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -49,6 +50,7 @@ class EpubToAudiobook:
         self.language = language
         self.skiplinks = skiplinks
         self.skipfootnotes = skipfootnotes
+        self.sayparts = sayparts
         self.engine = engine
         self.minratio = minratio
         self.debug = debug
@@ -217,7 +219,7 @@ class EpubToAudiobook:
                 self.speaker_embedding,
                 stream_chunk_size=60,
                 temperature=0.60,
-                repetition_penalty=10.0,
+                repetition_penalty=15.0,
                 enable_text_splitting=True,
             )
             for j, chunk in enumerate(chunks):
@@ -354,13 +356,18 @@ class EpubToAudiobook:
         position = 0
         start_time = time.time()
         print("Reading from " + str(self.start + 1) + " to " + str(self.end))
-        for i in range(self.start, self.end):
+        for partnum, i in enumerate(range(self.start, self.end)):
             outputflac = self.bookname + "-" + str(i + 1) + ".flac"
             if os.path.isfile(outputflac):
                 print(outputflac + " exists, skipping to next chapter")
             else:
                 tempfiles = []
-                sentences = sent_tokenize(self.chapters_to_read[i])
+                if self.sayparts:
+                    chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
+                else:
+                    chapter = self.chapters_to_read[i]
+                #sentences = sent_tokenize(self.chapters_to_read[i])
+                sentences = sent_tokenize(chapter)
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
                     length = 500
@@ -368,7 +375,7 @@ class EpubToAudiobook:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
-                    retries = 1
+                    retries = 2
                     tempwav = "temp" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
                     if os.path.isfile(tempflac):
@@ -591,7 +598,7 @@ def main():
         "--minratio",
         type=int,
         nargs="?",
-        const=88,
+        const=93,
         default=88,
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
@@ -604,6 +611,11 @@ def main():
         "--skipfootnotes", 
         action="store_true", 
         help="Try to skip reading footnotes"
+    )
+    parser.add_argument(
+        "--sayparts", 
+        action="store_true", 
+        help="Say each part number at start of section"
     )
     parser.add_argument(
         "--bitrate",
@@ -636,6 +648,7 @@ def main():
         debug=args.debug,
         language=args.language,
         skipfootnotes=args.skipfootnotes,
+        sayparts=args.sayparts,
     )
 
     print("Language selected: " + mybook.language)
