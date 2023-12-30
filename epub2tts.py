@@ -71,7 +71,7 @@ class EpubToAudiobook:
                 self.tts_dir + "/tts_models--multilingual--multi-dataset--xtts_v2"
             )
         else:
-            self.xtts_model = self.tts_dir + "/" + model_name
+            self.xtts_model = f"{self.tts_dir}/{model_name}"
         self.whispermodel = whisper.load_model("tiny")
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
@@ -178,15 +178,15 @@ class EpubToAudiobook:
             if len(text) < 150:
                 # too short to bother with
                 continue
-            print("Length: " + str(len(text)))
-            print("Part: " + str(len(self.chapters_to_read) + 1))
+            print(f"Length: {len(text)}")
+            print(f"Part: {len(self.chapters_to_read) + 1}")
             if self.skipfootnotes:
                 text = self.exclude_footnotes(text)
             if self.skipfootnotes and text.startswith("Footnotes"):
                 continue
             print(text[:256])
             self.chapters_to_read.append(text)
-        print("Number of chapters to read: " + str(len(self.chapters_to_read)))
+        print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
             self.end = len(self.chapters_to_read)
 
@@ -198,7 +198,7 @@ class EpubToAudiobook:
         while len(text) > max_len:
             pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
             self.chapters_to_read.append(text[:pos])
-            print("Part: " + str(len(self.chapters_to_read)))
+            print(f"Part: {len(self.chapters_to_read)}")
             print(str(self.chapters_to_read[-1])[:256])
             text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
         self.chapters_to_read.append(text)
@@ -263,9 +263,9 @@ class EpubToAudiobook:
         result = self.whispermodel.transcribe(wavfile)
         text = re.sub(" +", " ", text).lower().strip()
         ratio = fuzz.ratio(text, result["text"].lower())
-        print("Transcript: " + result["text"].lower()) if self.debug else None
+        print(f"Transcript: {result['text'].lower()}") if self.debug else None
         print(
-            "Text to transcript comparison ratio: " + str(ratio)
+            f"Text to transcript comparison ratio: {ratio}"
         ) if self.debug else None
         return ratio
 
@@ -299,16 +299,16 @@ class EpubToAudiobook:
         else:
             voice_name = "-" + speaker
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
-        print("Saving to " + self.output_filename)
+        print(f"Saving to {self.output_filename}")
         total_chars = self.get_length(self.start, self.end, self.chapters_to_read)
-        print("Total characters: " + str(total_chars))
+        print(f"Total characters: {total_chars}")
         if engine == "xtts":
             if (
                 torch.cuda.is_available()
                 and torch.cuda.get_device_properties(0).total_memory > 3500000000
             ):
                 print("Using GPU")
-                print("VRAM: " + str(torch.cuda.get_device_properties(0).total_memory))
+                print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
                 self.device = "cuda"
             else:
                 print("Not enough VRAM on GPU or CUDA not found. Using CPU")
@@ -327,7 +327,7 @@ class EpubToAudiobook:
             )
 
             if self.device == "cuda":
-                print("VRAM: " + str(torch.cuda.get_device_properties(0).total_memory))
+                print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
                 self.model.cuda()
 
             print("Computing speaker latents...")
@@ -349,24 +349,23 @@ class EpubToAudiobook:
                     break
             client = OpenAI(api_key=self.openai)
         else:
-            print("Engine is TTS, model is " + model_name)
+            print(f"Engine is TTS, model is {model_name}")
             self.tts = TTS(model_name).to(self.device)
 
         files = []
         position = 0
         start_time = time.time()
-        print("Reading from " + str(self.start + 1) + " to " + str(self.end))
+        print(f"Reading from {self.start + 1} to {self.end}")
         for partnum, i in enumerate(range(self.start, self.end)):
-            outputflac = self.bookname + "-" + str(i + 1) + ".flac"
+            outputflac = f"{self.bookname}-{i + 1}.flac"
             if os.path.isfile(outputflac):
-                print(outputflac + " exists, skipping to next chapter")
+                print(f"{outputflac} exists, skipping to next chapter")
             else:
                 tempfiles = []
                 if self.sayparts:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
-                #sentences = sent_tokenize(self.chapters_to_read[i])
                 sentences = sent_tokenize(chapter)
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
@@ -409,8 +408,7 @@ class EpubToAudiobook:
                                         if self.language != "en":
                                             sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                         print(
-                                            "text to read: " +
-                                            sentence_groups[x]
+                                            f"text to read: {sentence_groups[x]}"
                                         ) if self.debug else None
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
@@ -432,21 +430,17 @@ class EpubToAudiobook:
                                     ratio = self.compare(sentence_groups[x], tempwav)
                                 if ratio < self.minratio:
                                     raise Exception(
-                                        "Spoken text did not sound right - "
-                                        + str(ratio)
+                                        f"Spoken text did not sound right - {ratio}"
                                     )
                                 break
                             except Exception as e:
                                 retries -= 1
                                 print(
-                                    f"Error: {str(e)} ... Retrying ({retries} retries left)"
+                                    f"Error: {e} ... Retrying ({retries} retries left)"
                                 )
                         if retries == 0:
                             print(
-                                "Something is wrong with the audio ("
-                                + str(ratio)
-                                + "): "
-                                + tempwav
+                                f"Something is wrong with the audio ({ratio}): {tempwav}"
                             )
                             # sys.exit()
                         temp = AudioSegment.from_wav(tempwav)
@@ -457,9 +451,7 @@ class EpubToAudiobook:
                 concatenated = sum(tempflacfiles)
                 # remove silence, then export to flac
                 print(
-                    "Replacing silences longer than one second with one second of silence ("
-                    + outputflac
-                    + ")"
+                    f"Replacing silences longer than one second with one second of silence ({outputflac})"
                 )
                 one_sec_silence = AudioSegment.silent(duration=1000)
                 two_sec_silence = AudioSegment.silent(duration=2000)
