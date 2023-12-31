@@ -396,14 +396,16 @@ class EpubToAudiobook:
                                             sentence_groups[x] = sentence_groups[x].replace(".", ",")
                                     self.read_chunk_xtts(sentence_groups[x], tempwav)
                                 elif engine == "openai":
+                                    self.minratio = 0
                                     response = client.audio.speech.create(
                                         model="tts-1",
-                                        voice=speaker,
+                                        voice=speaker.lower(),
                                         input=sentence_groups[x],
                                     )
                                     response.stream_to_file(tempwav)
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
+                                        self.minratio = 0
                                         # assume we're using a multi-speaker model
                                         print(
                                             sentence_groups[x]
@@ -432,8 +434,8 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x], file_path=tempwav
                                         )
-                                if self.minratio == 0 or model_name == "tts_models/en/vctk/vits":
-                                    print("Skipping whisper transcript comparison")
+                                if self.minratio == 0:
+                                    print("Skipping whisper transcript comparison") if self.debug else None
                                     ratio = self.minratio
                                 else:
                                     ratio = self.compare(sentence_groups[x], tempwav)
@@ -452,7 +454,10 @@ class EpubToAudiobook:
                                 f"Something is wrong with the audio ({ratio}): {tempwav}"
                             )
                             # sys.exit()
-                        temp = AudioSegment.from_wav(tempwav)
+                        if engine == "openai":
+                            temp = AudioSegment.from_mp3(tempwav)
+                        else:
+                            temp = AudioSegment.from_wav(tempwav)
                         temp.export(tempflac, format="flac")
                         os.remove(tempwav)
                     tempfiles.append(tempflac)
