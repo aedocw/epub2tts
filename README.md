@@ -2,6 +2,8 @@ This script takes an epub (or text file) and reads it to an m4b audiobook file, 
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
+**NOTE:** DeepSpeed support for XTTS has been added! If deepspeed is installed and you have a compatible GPU, it will be detected and used. For XTTS, this will yeild a 3x-4x speed improvement! Install deepspeed with `pip install deepspeed`.
+
 **NOTE:** The Coqui team released their curated XTTS voice models recently, and they sound great. A recent update here
 allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required)
 
