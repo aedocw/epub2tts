@@ -1,5 +1,6 @@
 import argparse
 import os
+import pkg_resources
 import re
 import subprocess
 import sys
@@ -87,7 +88,14 @@ class EpubToAudiobook:
         except LookupError:
             nltk.download("punkt")
 
-    # Call the function to ensure punkt is downloaded
+    def is_installed(self, package_name):
+        package_installed = False
+        try:
+            pkg_resources.get_distribution(package_name)
+            package_installed = True
+        except pkg_resources.DistributionNotFound:
+            pass
+        return package_installed
 
     def generate_metadata(self, files, title, author):
         chap = 1
@@ -322,8 +330,9 @@ class EpubToAudiobook:
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
             self.model = Xtts.init_from_config(config)
+            use_deepspeed = is_installed("deepspeed")
             self.model.load_checkpoint(
-                config, checkpoint_dir=self.xtts_model, use_deepspeed=False
+                config, checkpoint_dir=self.xtts_model, use_deepspeed=use_deepspeed
             )
 
             if self.device == "cuda":
