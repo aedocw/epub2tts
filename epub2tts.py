@@ -330,7 +330,7 @@ class EpubToAudiobook:
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
             self.model = Xtts.init_from_config(config)
-            use_deepspeed = is_installed("deepspeed")
+            use_deepspeed = self.is_installed("deepspeed")
             self.model.load_checkpoint(
                 config, checkpoint_dir=self.xtts_model, use_deepspeed=use_deepspeed
             )
