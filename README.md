@@ -5,7 +5,8 @@ I recognize this is not very user friendly, but I wanted to share in case folks 
 **NOTE:** DeepSpeed support for XTTS has been added! If deepspeed is installed and you have a compatible GPU, it will be detected and used. For XTTS, this will yeild a 3x-4x speed improvement! Install deepspeed with `pip install deepspeed`.
 
 **NOTE:** The Coqui team released their curated XTTS voice models recently, and they sound great. A recent update here
-allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required)
+allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required). Also samples of the available XTTS voices, without installing the package first can be found there:
+https://github.com/rejuce/CoquiTTS_XTTS_Examples
 
 Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black"`
 
