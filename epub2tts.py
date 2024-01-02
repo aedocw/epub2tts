@@ -376,9 +376,9 @@ class EpubToAudiobook:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
-                sentences_x = sent_tokenize(chapter)
+                sentences = sent_tokenize(chapter)
                 #Drop any items that do NOT have at least one letter or number
-                sentences = [s for s in sentences_x if any(c.isalnum() for c in s)]
+                sentences = [s for s in sentences if any(c.isalnum() for c in s)]
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
                     length = 500
