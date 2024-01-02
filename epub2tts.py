@@ -216,8 +216,7 @@ class EpubToAudiobook:
         # takes list of sentences to read, reads through them and saves to file
         t0 = time.time()
         wav_chunks = []
-        sentence_list= sent_tokenize(sentences)
-
+        sentence_list = sent_tokenize(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             print(sentence) if self.debug else None
