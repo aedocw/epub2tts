@@ -216,7 +216,8 @@ class EpubToAudiobook:
         # takes list of sentences to read, reads through them and saves to file
         t0 = time.time()
         wav_chunks = []
-        sentence_list = sent_tokenize(sentences)
+        sentence_list= sent_tokenize(sentences)
+
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             print(sentence) if self.debug else None
@@ -375,7 +376,9 @@ class EpubToAudiobook:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
-                sentences = sent_tokenize(chapter)
+                sentences_x = sent_tokenize(chapter)
+                #Drop any items that do NOT have at least one letter or number
+                sentences = [s for s in sentences_x if any(c.isalnum() for c in s)]
                 if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
                     #we are using coqui voice, so make smaller chunks
                     length = 500
