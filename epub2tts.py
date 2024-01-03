@@ -388,7 +388,11 @@ class EpubToAudiobook:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
+                    #skip if item is empty
                     if len(sentence_groups[x]) == 0:
+                        continue
+                    #skip if item has no characters or numbers
+                    if not any(char.isalnum() for char in sentence_groups[x]):
                         continue
                     retries = 2
                     tempwav = "temp" + str(x) + ".wav"
