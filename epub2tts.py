@@ -168,6 +168,8 @@ class EpubToAudiobook:
             .replace("... ", ", ")
             .replace("«", " ")
             .replace("»", " ")
+            .replace("[", "")
+            .replace("]", "")
             .replace("&", " and ")
             .replace(" GNU ", " new ")
             .replace("\n", " \n")
