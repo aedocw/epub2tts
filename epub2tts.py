@@ -161,6 +161,9 @@ class EpubToAudiobook:
             .replace(":", ", ")
             .replace("''", ", ")
             .replace("’", "'")
+            .replace('“', '"')
+            .replace('”', '"')
+            .replace("◇", "")
             .replace(" . . . ", ", ")
             .replace("... ", ", ")
             .replace("«", " ")
@@ -385,6 +388,8 @@ class EpubToAudiobook:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
                 for x in tqdm(range(len(sentence_groups))):
+                    if len(sentence_groups[x]) == 0:
+                        continue
                     retries = 2
                     tempwav = "temp" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
