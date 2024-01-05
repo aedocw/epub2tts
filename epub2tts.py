@@ -144,7 +144,7 @@ class EpubToAudiobook:
                 a.extract()
         # Always skip reading links that are just a number (footnotes)
         for a in soup.findAll("a", href=True):
-            if a.text.isdigit():
+            if not any(char.isalpha() for char in a.text):
                 a.extract()
         text = soup.find_all(string=True)
         for t in text:
@@ -195,6 +195,8 @@ class EpubToAudiobook:
             print(f"Part: {len(self.chapters_to_read) + 1}")
             if self.skipfootnotes:
                 text = self.exclude_footnotes(text)
+                #This drops everything after "Skip Notes" in a chapter
+                text = text.split("Skip Notes")[0].strip()
             if self.skipfootnotes and text.startswith("Footnotes"):
                 continue
             print(text[:256])
@@ -232,7 +234,7 @@ class EpubToAudiobook:
                 self.speaker_embedding,
                 stream_chunk_size=60,
                 temperature=0.60,
-                repetition_penalty=15.0,
+                repetition_penalty=20.0,
                 enable_text_splitting=True,
             )
             for j, chunk in enumerate(chunks):
