@@ -144,7 +144,7 @@ class EpubToAudiobook:
                 a.extract()
         # Always skip reading links that are just a number (footnotes)
         for a in soup.findAll("a", href=True):
-            if a.text.isdigit():
+            if not any(char.isalpha() for char in a.text):
                 a.extract()
         text = soup.find_all(string=True)
         for t in text:
@@ -195,6 +195,8 @@ class EpubToAudiobook:
             print(f"Part: {len(self.chapters_to_read) + 1}")
             if self.skipfootnotes:
                 text = self.exclude_footnotes(text)
+                #This drops everything after "Skip Notes" in a chapter
+                text = text.split("Skip Notes")[0].strip()
             if self.skipfootnotes and text.startswith("Footnotes"):
                 continue
             print(text[:256])
@@ -232,7 +234,7 @@ class EpubToAudiobook:
                 self.speaker_embedding,
                 stream_chunk_size=60,
                 temperature=0.60,
-                repetition_penalty=15.0,
+                repetition_penalty=20.0,
                 enable_text_splitting=True,
             )
             for j, chunk in enumerate(chunks):
@@ -296,7 +298,7 @@ class EpubToAudiobook:
         self.model_name = model_name
         self.openai = openai
         if engine == "xtts":
-            if voice_samples != '':
+            if voice_samples != None:
                 self.voice_samples = []
                 for f in voice_samples.split(","):
                     self.voice_samples.append(os.path.abspath(f))
@@ -304,10 +306,14 @@ class EpubToAudiobook:
                     "-" + re.split("-|\d+|\.", os.path.basename(self.voice_samples[0]))[0]
                 )
             else:
-                voice_name = speaker.replace(" ", "-").lower()
+                voice_name = "-" + speaker.replace(" ", "-").lower()
         elif engine == "openai":
-            if speaker == "p335":
+            if speaker == None:
                 speaker = "onyx"
+            voice_name = "-" + speaker
+        elif engine == "tts":
+            if speaker == None:
+                speaker = "p335"
             voice_name = "-" + speaker
         else:
             voice_name = "-" + speaker
@@ -345,10 +351,17 @@ class EpubToAudiobook:
                 self.model.cuda()
 
             print("Computing speaker latents...")
-            (
+            if speaker == None:
+                (
                 self.gpt_cond_latent,
                 self.speaker_embedding,
-            ) = self.model.get_conditioning_latents(audio_path=self.voice_samples)
+                ) = self.model.get_conditioning_latents(audio_path=self.voice_samples)
+            else: #using Coqui speaker
+                (
+                self.gpt_cond_latent,
+                self.speaker_embedding,
+                ) = self.model.speaker_manager.speakers[speaker].values()
+
         elif engine == "openai":
             while True:
                 openai_sdcost = (total_chars / 1000) * 0.015
@@ -426,18 +439,6 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
-                                            file_path=tempwav,
-                                        )
-                                    elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
-                                        if self.language != "en":
-                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
-                                        print(
-                                            f"text to read: {sentence_groups[x]}"
-                                        ) if self.debug else None
-                                        self.tts.tts_to_file(
-                                            text=sentence_groups[x],
-                                            speaker=speaker,
-                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
@@ -579,9 +580,6 @@ def main():
     parser.add_argument(
         "--speaker",
         type=str,
-        default="p335",
-        nargs="?",
-        const="p335",
         help="Speaker to use (ex p335 for VITS, or onyx for OpenAI)",
     )
     parser.add_argument(
@@ -652,10 +650,6 @@ def main():
         args.engine = "openai"
     elif args.xtts:
         args.engine = "xtts"
-    elif args.speaker != "" and args.engine == "xtts" and args.model != "":
-        #we are using a Coqui XTTS voice
-        args.engine = "tts"
-        args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
