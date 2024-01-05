@@ -298,7 +298,7 @@ class EpubToAudiobook:
         self.model_name = model_name
         self.openai = openai
         if engine == "xtts":
-            if voice_samples != '':
+            if voice_samples != None:
                 self.voice_samples = []
                 for f in voice_samples.split(","):
                     self.voice_samples.append(os.path.abspath(f))
@@ -306,10 +306,14 @@ class EpubToAudiobook:
                     "-" + re.split("-|\d+|\.", os.path.basename(self.voice_samples[0]))[0]
                 )
             else:
-                voice_name = speaker.replace(" ", "-").lower()
+                voice_name = "-" + speaker.replace(" ", "-").lower()
         elif engine == "openai":
-            if speaker == "p335":
+            if speaker == None:
                 speaker = "onyx"
+            voice_name = "-" + speaker
+        elif engine == "tts":
+            if speaker == None:
+                speaker = "p335"
             voice_name = "-" + speaker
         else:
             voice_name = "-" + speaker
@@ -576,9 +580,6 @@ def main():
     parser.add_argument(
         "--speaker",
         type=str,
-        default="p335",
-        nargs="?",
-        const="p335",
         help="Speaker to use (ex p335 for VITS, or onyx for OpenAI)",
     )
     parser.add_argument(
@@ -649,11 +650,6 @@ def main():
         args.engine = "openai"
     elif args.xtts:
         args.engine = "xtts"
-#This might not be
-#    elif args.speaker != "" and args.engine == "xtts" and args.model != "":
-#        #we are using a Coqui XTTS voice
-#        args.engine = "tts"
-#        args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
