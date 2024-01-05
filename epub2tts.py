@@ -351,7 +351,7 @@ class EpubToAudiobook:
                 self.model.cuda()
 
             print("Computing speaker latents...")
-            if speaker == "":
+            if speaker == None:
                 (
                 self.gpt_cond_latent,
                 self.speaker_embedding,
