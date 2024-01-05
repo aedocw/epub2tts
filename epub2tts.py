@@ -345,10 +345,17 @@ class EpubToAudiobook:
                 self.model.cuda()
 
             print("Computing speaker latents...")
-            (
+            if speaker == "":
+                (
                 self.gpt_cond_latent,
                 self.speaker_embedding,
-            ) = self.model.get_conditioning_latents(audio_path=self.voice_samples)
+                ) = self.model.get_conditioning_latents(audio_path=self.voice_samples)
+            else: #using Coqui speaker
+                (
+                self.gpt_cond_latent,
+                self.speaker_embedding,
+                ) = self.model.speaker_manager.speakers[speaker].values()
+
         elif engine == "openai":
             while True:
                 openai_sdcost = (total_chars / 1000) * 0.015
@@ -426,18 +433,6 @@ class EpubToAudiobook:
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
-                                            file_path=tempwav,
-                                        )
-                                    elif model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
-                                        if self.language != "en":
-                                            sentence_groups[x] = sentence_groups[x].replace(".", ",")
-                                        print(
-                                            f"text to read: {sentence_groups[x]}"
-                                        ) if self.debug else None
-                                        self.tts.tts_to_file(
-                                            text=sentence_groups[x],
-                                            speaker=speaker,
-                                            language=self.language,
                                             file_path=tempwav,
                                         )
                                     else:
@@ -652,10 +647,11 @@ def main():
         args.engine = "openai"
     elif args.xtts:
         args.engine = "xtts"
-    elif args.speaker != "" and args.engine == "xtts" and args.model != "":
-        #we are using a Coqui XTTS voice
-        args.engine = "tts"
-        args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
+#This might not be
+#    elif args.speaker != "" and args.engine == "xtts" and args.model != "":
+#        #we are using a Coqui XTTS voice
+#        args.engine = "tts"
+#        args.model = "tts_models/multilingual/multi-dataset/xtts_v2"
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
