@@ -58,6 +58,7 @@ class EpubToAudiobook:
         self.output_filename = self.bookname + ".m4b"
         self.chapters = []
         self.chapters_to_read = []
+        self.section_names = []
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -110,7 +111,10 @@ class EpubToAudiobook:
                 file.write("TIMEBASE=1/1000\n")
                 file.write("START=" + str(start_time) + "\n")
                 file.write("END=" + str(start_time + duration) + "\n")
-                file.write("title=Part " + str(chap) + "\n")
+                if len(self.section_names) > 0:
+                    file.write(f"title={self.section_names[chap-1]}\n")
+                else:
+                    file.write("title=Part " + str(chap) + "\n")
                 chap += 1
                 start_time += duration
 
@@ -210,13 +214,24 @@ class EpubToAudiobook:
             text = file.read()
         text = self.prep_text(text)
         max_len = 50000
-        while len(text) > max_len:
-            pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
-            self.chapters_to_read.append(text[:pos])
-            print(f"Part: {len(self.chapters_to_read)}")
-            print(str(self.chapters_to_read[-1])[:256])
-            text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
-        self.chapters_to_read.append(text)
+        lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
+        if lines_with_hashtag:
+            for line in lines_with_hashtag:
+                self.section_names.append(line.lstrip("# ").strip())
+            sections = re.split(r"#\s+", text.strip())[1:]
+            for section in sections:
+                if self.sayparts == False:
+                    lines = section.splitlines()
+                    section = "\n".join(lines[1:])
+                self.chapters_to_read.append(section.strip())
+        else:
+            while len(text) > max_len:
+                pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
+                self.chapters_to_read.append(text[:pos])
+                print(f"Part: {len(self.chapters_to_read)}")
+                print(str(self.chapters_to_read[-1])[:256])
+                text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
+            self.chapters_to_read.append(text)
         self.end = len(self.chapters_to_read)
 
     def read_chunk_xtts(self, sentences, wav_file_path):
@@ -408,7 +423,7 @@ class EpubToAudiobook:
                 print(f"{outputflac} exists, skipping to next chapter")
             else:
                 tempfiles = []
-                if self.sayparts:
+                if self.sayparts and len(self.section_names) == 0:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
