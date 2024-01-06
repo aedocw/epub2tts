@@ -210,12 +210,18 @@ class EpubToAudiobook:
             text = file.read()
         text = self.prep_text(text)
         max_len = 50000
-        while len(text) > max_len:
-            pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
-            self.chapters_to_read.append(text[:pos])
-            print(f"Part: {len(self.chapters_to_read)}")
-            print(str(self.chapters_to_read[-1])[:256])
-            text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
+        lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
+        if lines_with_hashtag:
+            sections = re.split(r"#\s+", text.strip())[1:]
+            for section in sections:
+                self.chapters_to_read.append(section.strip())
+        else:
+            while len(text) > max_len:
+                pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
+                self.chapters_to_read.append(text[:pos])
+                print(f"Part: {len(self.chapters_to_read)}")
+                print(str(self.chapters_to_read[-1])[:256])
+                text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
         self.chapters_to_read.append(text)
         self.end = len(self.chapters_to_read)
 
