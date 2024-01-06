@@ -295,7 +295,6 @@ class EpubToAudiobook:
         yield combined
 
     def export(self, format):
-        print("In Export")
         allowed_formats = ["txt"]
         #this should probably be a try/except, fix later
         if format not in allowed_formats:
@@ -703,7 +702,6 @@ def main():
     if args.scan:
         sys.exit()
     if args.export is not None:
-        print("Export was not None")
         mybook.export(
             format=args.export,
         )
