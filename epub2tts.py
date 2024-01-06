@@ -313,11 +313,11 @@ class EpubToAudiobook:
             if overwrite.lower() != 'y':
                 print("Exiting without overwriting the file.")
                 sys.exit()
-            print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
-            with open(outputfile, "w") as file:
-                for partnum, i in enumerate(range(self.start, self.end)):
-                    file.write(f"\n# Part {partnum + 1}\n\n")
-                    file.write(self.chapters_to_read[i] + "\n")
+        print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
+        with open(outputfile, "w") as file:
+            for partnum, i in enumerate(range(self.start, self.end)):
+                file.write(f"\n# Part {partnum + 1}\n\n")
+                file.write(self.chapters_to_read[i] + "\n")
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
