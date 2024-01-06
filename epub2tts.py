@@ -295,6 +295,7 @@ class EpubToAudiobook:
         yield combined
 
     def export(self, format):
+        print("In Export")
         allowed_formats = ["txt"]
         #this should probably be a try/except, fix later
         if format not in allowed_formats:
@@ -307,11 +308,11 @@ class EpubToAudiobook:
             if overwrite.lower() != 'y':
                 print("Exiting without overwriting the file.")
                 sys.exit()
-            print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
-            with open(outputfile, "w") as file:
-                for partnum, i in enumerate(range(self.start, self.end)):
-                    file.write(f"\n# Part {partnum + 1}\n\n")
-                    file.write(self.chapters_to_read[i] + "\n")
+        print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
+        with open(outputfile, "w") as file:
+            for partnum, i in enumerate(range(self.start, self.end)):
+                file.write(f"\n# Part {partnum + 1}\n\n")
+                file.write(self.chapters_to_read[i] + "\n")
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -669,9 +670,6 @@ def main():
     parser.add_argument(
         "--export",
         type=str,
-        nargs="?",
-        const="txt",
-        default="txt",
         help="Export epub contents to file (txt, md coming soon)"
     )
 
@@ -704,7 +702,8 @@ def main():
         mybook.get_chapters_text()
     if args.scan:
         sys.exit()
-    if args.export:
+    if args.export is not None:
+        print("Export was not None")
         mybook.export(
             format=args.export,
         )
