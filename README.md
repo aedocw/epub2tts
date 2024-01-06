@@ -2,6 +2,8 @@ This script takes an epub (or text file) and reads it to an m4b audiobook file, 
 
 I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
 
+**NOTE:** Latest release adds a new workflow allowing you to export the epub to text, make any necessary modifications, then read the book as a text file. Any line beginning with "# " is considered a chapter break, and will be automatically inserted during export, named "# Part 1", etc. If you replace "Part 1" with whatever you want that section to be called it will be labeled that way in the audiobook metadata.
+
 **NOTE:** DeepSpeed support for XTTS has been added! If deepspeed is installed and you have a compatible GPU, it will be detected and used. For XTTS, this will yeild a 3x-4x speed improvement! Install deepspeed with `pip install deepspeed`.
 
 **NOTE:** The Coqui team released their curated XTTS voice models recently, and they sound great. A recent update here
@@ -13,10 +15,6 @@ Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black"`
 **NOTE:** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect. Also take a look in the utils directory for notes on finetuning your model for exceptional results. (GPU required)
 
 Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav`
-
-**NOTE:** Now with [OpenAI TTS](https://platform.openai.com/docs/guides/text-to-speech) support! It's not free, but the average cost for a few books I tested was around $7. If you use `--openai <API key>` flag epub2tts will provide a cost estimate and prompt you to approve before continuing.
-
-**NOTE:** HUGE thanks to a recent PR from [wonka929](https://github.com/wonka929), epub2tts now recognizes when a CUDA GPU is available and will use it automatically. In a brief test I did, the speedup was incredible!
 
 ## USAGE:
 Usage: 
@@ -34,6 +32,8 @@ To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p
 To skip reading any links, add: `--skiplinks`
 
 Using `--scan` will list excerpts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
+
+Using `--export txt` will export the entire book to text file. This will honor `--start` and `--end` arguments as well.
 
 To specify which chapter to start on (ex 3): `--start 3`
 
