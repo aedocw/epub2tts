@@ -294,6 +294,25 @@ class EpubToAudiobook:
                 combined = sentence
         yield combined
 
+    def export(self, format):
+        allowed_formats = ["txt"]
+        #this should probably be a try/except, fix later
+        if format not in allowed_formats:
+            print(f"{format} not allowed export format")
+            sys.exit()
+        outputfile = f"{self.bookname}.{format}"
+        if os.path.isfile(outputfile):
+            print(f"The file '{outputfile}' already exists.")
+            overwrite = input("Do you want to overwrite the file? (y/n): ")
+            if overwrite.lower() != 'y':
+                print("Exiting without overwriting the file.")
+                sys.exit()
+            print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
+            with open(outputfile, "w") as file:
+                for partnum, i in enumerate(range(self.start, self.end)):
+                    file.write(f"\n# Part {partnum + 1}\n\n")
+                    file.write(self.chapters_to_read[i] + "\n")
+
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
         self.openai = openai
@@ -642,7 +661,20 @@ def main():
         default="69k",
         help="Specify bitrate for output file",
     )
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output",
+    )
+    parser.add_argument(
+        "--export",
+        type=str,
+        nargs="?",
+        const="txt",
+        default="txt",
+        help="Export epub contents to file (txt, md coming soon)"
+    )
+
     args = parser.parse_args()
     print(args)
 
@@ -671,6 +703,11 @@ def main():
     else:
         mybook.get_chapters_text()
     if args.scan:
+        sys.exit()
+    if args.export:
+        mybook.export(
+            format=args.export,
+        )
         sys.exit()
     mybook.read_book(
         voice_samples=args.xtts,
