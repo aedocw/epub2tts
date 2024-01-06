@@ -675,9 +675,6 @@ def main():
     parser.add_argument(
         "--export",
         type=str,
-        nargs="?",
-        const="txt",
-        default="txt",
         help="Export epub contents to file (txt, md coming soon)"
     )
 
@@ -710,7 +707,7 @@ def main():
         mybook.get_chapters_text()
     if args.scan:
         sys.exit()
-    if args.export:
+    if args.export is not None:
         mybook.export(
             format=args.export,
         )
