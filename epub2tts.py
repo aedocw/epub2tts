@@ -43,6 +43,7 @@ class EpubToAudiobook:
         language,
         skipfootnotes,
         sayparts,
+        no_deepspeed,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -59,6 +60,7 @@ class EpubToAudiobook:
         self.chapters = []
         self.chapters_to_read = []
         self.section_names = []
+        self.no_deepspeed = no_deepspeed
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -375,7 +377,10 @@ class EpubToAudiobook:
             model_json = self.xtts_model + "/config.json"
             config.load_json(model_json)
             self.model = Xtts.init_from_config(config)
-            use_deepspeed = self.is_installed("deepspeed")
+            if self.no_deepspeed:
+                use_deepspeed = False
+            else:
+                use_deepspeed = self.is_installed("deepspeed")
             self.model.load_checkpoint(
                 config, checkpoint_dir=self.xtts_model, use_deepspeed=use_deepspeed
             )
@@ -686,6 +691,11 @@ def main():
         type=str,
         help="Export epub contents to file (txt, md coming soon)"
     )
+    parser.add_argument(
+        "--no-deepspeed",
+        action="store_true",
+        help="Disable deepspeed",
+    )
 
     args = parser.parse_args()
     print(args)
@@ -706,6 +716,7 @@ def main():
         language=args.language,
         skipfootnotes=args.skipfootnotes,
         sayparts=args.sayparts,
+        no_deepspeed=args.no_deepspeed,
     )
 
     print("Language selected: " + mybook.language)
