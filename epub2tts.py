@@ -318,17 +318,20 @@ class EpubToAudiobook:
             print(f"{format} not allowed export format")
             sys.exit()
         outputfile = f"{self.bookname}.{format}"
-        if os.path.isfile(outputfile):
-            print(f"The file '{outputfile}' already exists.")
-            overwrite = input("Do you want to overwrite the file? (y/n): ")
-            if overwrite.lower() != 'y':
-                print("Exiting without overwriting the file.")
-                sys.exit()
+        self.check_for_file(outputfile)
         print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
         with open(outputfile, "w") as file:
             for partnum, i in enumerate(range(self.start, self.end)):
                 file.write(f"\n# Part {partnum + 1}\n\n")
                 file.write(self.chapters_to_read[i] + "\n")
+
+    def check_for_file(self, filename):
+        if os.path.isfile(filename):
+            print(f"The file '{filename}' already exists.")
+            overwrite = input("Do you want to overwrite the file? (y/n): ")
+            if overwrite.lower() != 'y':
+                print("Exiting without overwriting the file.")
+                sys.exit()
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -355,6 +358,8 @@ class EpubToAudiobook:
             voice_name = "-" + speaker
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
         print(f"Saving to {self.output_filename}")
+        self.check_for_file(self.output_filename)
+        os.remove(self.output_filename)
         total_chars = self.get_length(self.start, self.end, self.chapters_to_read)
         print(f"Total characters: {total_chars}")
         if engine == "xtts":
