@@ -332,6 +332,8 @@ class EpubToAudiobook:
             if overwrite.lower() != 'y':
                 print("Exiting without overwriting the file.")
                 sys.exit()
+            else:
+                os.remove(filename)
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -359,7 +361,6 @@ class EpubToAudiobook:
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
         print(f"Saving to {self.output_filename}")
         self.check_for_file(self.output_filename)
-        os.remove(self.output_filename)
         total_chars = self.get_length(self.start, self.end, self.chapters_to_read)
         print(f"Total characters: {total_chars}")
         if engine == "xtts":
