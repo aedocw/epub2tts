@@ -1,0 +1,15 @@
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel
+ARG DEBIAN_FRONTEND=noninteractive
+
+ENV BOOK=mybook.epub
+
+RUN mkdir /opt/epub2tts && \
+          apt-get update && \
+          apt install --no-install-recommends -y espeak-ng ffmpeg
+ADD requirements.txt /opt/epub2tts/.
+ADD epub2tts.py /opt/epub2tts/.
+RUN pip3 install -r /opt/epub2tts/requirements.txt
+
+ENTRYPOINT ["python3", "/opt/epub2tts/epub2tts.py"]
+
+CMD ["--help"]
