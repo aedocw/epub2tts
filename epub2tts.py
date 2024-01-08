@@ -429,9 +429,9 @@ class EpubToAudiobook:
         start_time = time.time()
         print(f"Reading from {self.start + 1} to {self.end}")
         for partnum, i in enumerate(range(self.start, self.end)):
-            outputflac = f"{self.bookname}-{i + 1}.flac"
-            if os.path.isfile(outputflac):
-                print(f"{outputflac} exists, skipping to next chapter")
+            outputwav = f"{self.bookname}-{i + 1}.wav"
+            if os.path.isfile(outputwav):
+                print(f"{outputwav} exists, skipping to next chapter")
             else:
                 tempfiles = []
                 if self.sayparts and len(self.section_names) == 0:
@@ -457,8 +457,8 @@ class EpubToAudiobook:
                     retries = 2
                     tempwav = "temp" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
-                    if os.path.isfile(tempflac):
-                        print(tempflac + " exists, skipping to next chunk")
+                    if os.path.isfile(tempwav):
+                        print(tempwav + " exists, skipping to next chunk")
                     else:
                         while retries > 0:
                             try:
@@ -517,14 +517,14 @@ class EpubToAudiobook:
                             temp = AudioSegment.from_mp3(tempwav)
                         else:
                             temp = AudioSegment.from_wav(tempwav)
-                        temp.export(tempflac, format="flac")
-                        os.remove(tempwav)
-                    tempfiles.append(tempflac)
-                tempflacfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
-                concatenated = sum(tempflacfiles)
-                # remove silence, then export to flac
+                        #temp.export(tempflac, format="flac")
+                        #os.remove(tempwav)
+                    tempfiles.append(tempwav)
+                tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
+                concatenated = sum(tempwavfiles)
+                # remove silence, then export to wav
                 print(
-                    f"Replacing silences longer than one second with one second of silence ({outputflac})"
+                    f"Replacing silences longer than one second with one second of silence ({outputwav})"
                 )
                 one_sec_silence = AudioSegment.silent(duration=1000)
                 two_sec_silence = AudioSegment.silent(duration=2000)
@@ -542,10 +542,10 @@ class EpubToAudiobook:
                 if self.sourcetype == "epub":
                     audio_modified += two_sec_silence
                 # Write modified audio to the final audio segment
-                audio_modified.export(outputflac, format="flac")
+                audio_modified.export(outputwav, format="wav")
                 for f in tempfiles:
                     os.remove(f)
-            files.append(outputflac)
+            files.append(outputwav)
             position += len(self.chapters_to_read[i])
             percentage = (position / total_chars) * 100
             print(f"{percentage:.2f}% spoken so far.")
@@ -558,13 +558,28 @@ class EpubToAudiobook:
             )
             gc.collect()
             torch.cuda.empty_cache()
-        # Load all FLAC files and concatenate into one object
-        flac_files = [AudioSegment.from_file(f"{f}") for f in files]
-        concatenated = AudioSegment.empty()
-        for audio in flac_files:
-            concatenated += audio
         outputm4a = self.output_filename.replace("m4b", "m4a")
-        concatenated.export(outputm4a, format="ipod", bitrate=bitrate)
+        filelist = "filelist.txt"
+        with open(filelist, "w") as f:
+            for filename in files:
+                f.write(f"file '{filename}'\n")
+        ffmpeg_command = [
+            "ffmpeg",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            filelist,
+            "-codec:a",
+            "aac",
+            "-b:a",
+            bitrate,
+            "-f",
+            "ipod",
+            outputm4a,
+        ]
+        subprocess.run(ffmpeg_command)
         if self.sourcetype == "epub":
             author = self.book.get_metadata("DC", "creator")[0][0]
             title = self.book.get_metadata("DC", "title")[0][0]
@@ -585,9 +600,10 @@ class EpubToAudiobook:
             self.output_filename,
         ]
         subprocess.run(ffmpeg_command)
-        os.remove(self.ffmetadatafile)
-        os.remove(outputm4a)
         if not self.debug: # Leave the files if debugging
+            os.remove(filelist)
+            os.remove(self.ffmetadatafile)
+            os.remove(outputm4a)
             for f in files:
                 os.remove(f)
         print(self.output_filename + " complete")
