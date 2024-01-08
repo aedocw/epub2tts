@@ -567,6 +567,8 @@ class EpubToAudiobook:
             "ffmpeg",
             "-f",
             "concat",
+            "-safe",
+            "0",
             "-i",
             filelist,
             "-codec:a",
