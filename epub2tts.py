@@ -574,7 +574,7 @@ class EpubToAudiobook:
             "-codec:a",
             "aac",
             "-b:a",
-            "192k",
+            bitrate,
             "-f",
             "ipod",
             outputm4a,
