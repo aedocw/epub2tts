@@ -562,6 +562,7 @@ class EpubToAudiobook:
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
             for filename in files:
+                filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
         ffmpeg_command = [
             "ffmpeg",
