@@ -220,11 +220,11 @@ class EpubToAudiobook:
         if lines_with_hashtag:
             for line in lines_with_hashtag:
                 self.section_names.append(line.lstrip("# ").strip())
-            sections = re.split(r"#\s+", text.strip())[1:]
+            sections = re.split(r"\n(?=#\s)", text)
+            sections = [section.strip() for section in sections if section.strip()]
             for section in sections:
-                if self.sayparts == False:
-                    lines = section.splitlines()
-                    section = "\n".join(lines[1:])
+                lines = section.splitlines()
+                section = "\n".join(lines[1:])
                 self.chapters_to_read.append(section.strip())
         else:
             while len(text) > max_len:
@@ -235,6 +235,7 @@ class EpubToAudiobook:
                 text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
             self.chapters_to_read.append(text)
         self.end = len(self.chapters_to_read)
+        print(f"Section names: {self.section_names}") if self.debug else None
 
     def read_chunk_xtts(self, sentences, wav_file_path):
         # takes list of sentences to read, reads through them and saves to file
@@ -436,6 +437,8 @@ class EpubToAudiobook:
                 tempfiles = []
                 if self.sayparts and len(self.section_names) == 0:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
+                elif self.sayparts and len(self.section_names) > 0:
+                    chapter = self.section_names[partnum] + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
                 sentences = sent_tokenize(chapter)
