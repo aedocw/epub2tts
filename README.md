@@ -10,16 +10,18 @@ I recognize this is not very user friendly, but I wanted to share in case folks 
 allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required). Also samples of the available XTTS voices, without installing the package first can be found there:
 https://github.com/rejuce/CoquiTTS_XTTS_Examples
 
-Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black"`
+Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black" --cover cover-image.jpg`
 
 **NOTE:** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect. Also take a look in the utils directory for notes on finetuning your model for exceptional results. (GPU required)
 
-Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav`
+Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav --cover cover-image.jpg`
 
 ## USAGE:
 Usage: 
 
-  EPUB: `epub2tts my-book.epub`
+  EPUB: `epub2tts my-book.epub --cover cover-image.jpg`
+
+  EXPORT: `epub2tts my-book.epub --export txt`
 
   TEXT: `epub2tts my-book.txt`
 
@@ -42,6 +44,8 @@ To specify which chapter to end on (ex 20): `--end 20`
 To specify bitrate (ex 30k): `--bitrate 30k`
 
 To specify minimum comparison ratio between transcript of spoken text and original, default 88. Set to 0 to disable this comparison with whisper: `--minratio 95`
+
+To embed a cover image with the audiobook, add: `--cover your-cover.jpg`
 
 If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
 
