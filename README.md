@@ -16,7 +16,7 @@ Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black" --c
 
 Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav --cover cover-image.jpg`
 
-Typical inference times that can be expected:
+Typical inference times for xtts_v2 averaged over 4 processing chunks (about 4 sentences each) that can be expected:
 | Hardware                        | Inference Time   |
 |---------------------------------|------------------|
 | 20x CPU Xeon E5-2630 (without AVX) | 3.7x realtime  |
@@ -24,7 +24,8 @@ Typical inference times that can be expected:
 | 8x CPU Xeon Silver 4214 (with AVX) | 2.0x realtime  |
 | 2x CPU Xeon Silver 4214 (with AVX) | 2.9x realtime  |
 | Intel N4100 Atom (NAS)           | 4.7x realtime  |
-| GPU RTX A2000 4GB (w deepspeed)  | 0.4x realtime  |
+| GPU RTX A2000 4GB (w/o deepspeed)  | 0.4x realtime  |
+| GPU RTX A2000 4GB (w deepspeed)  | 0.15x realtime  |
 
 
 
