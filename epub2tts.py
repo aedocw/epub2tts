@@ -624,12 +624,6 @@ class EpubToAudiobook:
             outputm4a,
         ]
         subprocess.run(ffmpeg_command)
-#        if self.sourcetype == "epub":
-#            author = self.book.get_metadata("DC", "creator")[0][0]
-#            title = self.book.get_metadata("DC", "title")[0][0]
-#        else:
-#            author = "Unknown"
-#            title = self.bookname
         self.generate_metadata(files)
         ffmpeg_command = [
             "ffmpeg",
