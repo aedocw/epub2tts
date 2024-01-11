@@ -62,6 +62,8 @@ class EpubToAudiobook:
         self.chapters_to_read = []
         self.section_names = []
         self.no_deepspeed = no_deepspeed
+        self.title = self.bookname
+        self.author = "Unknown"
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -101,23 +103,24 @@ class EpubToAudiobook:
             pass
         return package_installed
 
-    def generate_metadata(self, files, title, author):
+    def generate_metadata(self, files):
         chap = 1
         start_time = 0
         with open(self.ffmetadatafile, "w") as file:
             file.write(";FFMETADATA1\n")
-            file.write("ARTIST=" + str(author) + "\n")
-            file.write("ALBUM=" + str(title) + "\n")
+            file.write(f"ARTIST={self.author}\n")
+            file.write(f"ALBUM={self.title}\n")
+            file.write("DESCRIPTION=Made with https://github.com/aedocw/epub2tts\n")
             for file_name in files:
                 duration = self.get_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
-                file.write("START=" + str(start_time) + "\n")
-                file.write("END=" + str(start_time + duration) + "\n")
+                file.write(f"START={start_time}\n")
+                file.write(f"END={start_time + duration}\n")
                 if len(self.section_names) > 0:
                     file.write(f"title={self.section_names[chap-1]}\n")
                 else:
-                    file.write("title=Part " + str(chap) + "\n")
+                    file.write(f"title=Part {chap}\n")
                 chap += 1
                 start_time += duration
 
@@ -192,6 +195,8 @@ class EpubToAudiobook:
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 self.chapters.append(item.get_content())
+        self.author = self.book.get_metadata("DC", "creator")[0][0]
+        self.title = self.book.get_metadata("DC", "title")[0][0]
 
         for i in range(len(self.chapters)):
             text = self.prep_text(self.chap2text(self.chapters[i]))
@@ -215,6 +220,11 @@ class EpubToAudiobook:
     def get_chapters_text(self):
         with open(self.source, "r") as file:
             text = file.read()
+        metadata, text = self.extract_title_author(text)
+        if metadata.get("Title") != None:
+            self.title = metadata.get("Title")
+        if metadata.get("Author") != None:
+            self.author = metadata.get("Author")
         text = self.prep_text(text)
         max_len = 50000
         lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
@@ -323,6 +333,8 @@ class EpubToAudiobook:
         self.check_for_file(outputfile)
         print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
         with open(outputfile, "w") as file:
+            file.write(f"Title: {self.title}\n")
+            file.write(f"Author: {self.author}\n\n")
             for partnum, i in enumerate(range(self.start, self.end)):
                 file.write(f"\n# Part {partnum + 1}\n\n")
                 file.write(self.chapters_to_read[i] + "\n")
@@ -345,6 +357,24 @@ class EpubToAudiobook:
             m4b.save()
         else:
             print(f"Cover image {cover_img} not found")
+
+    def extract_title_author(self, text):
+        lines = text.split('\n')
+        metadata = {}
+
+        # A copy of the list for iteration
+        lines_copy = lines[:]
+
+        for line in lines_copy[:2]:  # We check only the first two lines
+            if line.startswith('Title: '):
+                metadata['Title'] = line.replace('Title: ', '').strip()
+                lines.remove(line)  # Remove line from the original list
+            elif line.startswith('Author: '):
+                metadata['Author'] = line.replace('Author: ', '').strip()
+                lines.remove(line)  # Remove line from the original list
+
+        text = '\n'.join(lines)   # Join the lines back
+        return metadata, text
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -594,13 +624,13 @@ class EpubToAudiobook:
             outputm4a,
         ]
         subprocess.run(ffmpeg_command)
-        if self.sourcetype == "epub":
-            author = self.book.get_metadata("DC", "creator")[0][0]
-            title = self.book.get_metadata("DC", "title")[0][0]
-        else:
-            author = "Unknown"
-            title = self.bookname
-        self.generate_metadata(files, title, author)
+#        if self.sourcetype == "epub":
+#            author = self.book.get_metadata("DC", "creator")[0][0]
+#            title = self.book.get_metadata("DC", "title")[0][0]
+#        else:
+#            author = "Unknown"
+#            title = self.bookname
+        self.generate_metadata(files)
         ffmpeg_command = [
             "ffmpeg",
             "-i",
