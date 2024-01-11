@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
 from fuzzywuzzy import fuzz
+from mutagen import mp4
 import noisereduce
 from openai import OpenAI
 from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
@@ -335,6 +336,15 @@ class EpubToAudiobook:
                 sys.exit()
             else:
                 os.remove(filename)
+
+    def add_cover(self, cover_img):
+        if os.path.isfile(cover_img):
+            m4b = mp4.MP4(self.output_filename)
+            cover_image = open(cover_img, "rb").read()
+            m4b["covr"] = [mp4.MP4Cover(cover_image)]
+            m4b.save()
+        else:
+            print(f"Cover image {cover_img} not found")
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -722,6 +732,11 @@ def main():
         action="store_true",
         help="Disable deepspeed",
     )
+    parser.add_argument(
+        "--cover",
+        type=str,
+        help="jpg image to use for cover",
+    )
 
     args = parser.parse_args()
     print(args)
@@ -766,6 +781,8 @@ def main():
         speaker=args.speaker,
         bitrate=args.bitrate,
     )
+    if args.cover is not None:
+        mybook.add_cover(args.cover)
 
 
 if __name__ == "__main__":
