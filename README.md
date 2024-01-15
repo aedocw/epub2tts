@@ -1,69 +1,96 @@
-This script takes an epub (or text file) and reads it to an m4b audiobook file, using TTS by https://github.com/coqui-ai/TTS or OpenAI. The audiofiles are created in discrete chunks then transcribed using whisper speech-to-text. The transcription is compared to the original text, and if they don't match well it tries again. Finally all silence longer than a second is removed from all audio segments, and the audio is cleaned up before being combined into an m4b audiobook file.
+> epub2tts is a free an open source python app to easily create a full-featured audiobook from an epub or text file using realistic text-to-speed from [Coqui AI TTS](https://github.com/coqui-ai/TTS).
 
-I recognize this is not very user friendly, but I wanted to share in case folks thought it was useful. If there are a few more people than myself that find this is useful I will keep working on turning it into something that could be used by someone without dev experience.
+## 🚀 Features
 
-**NOTE:** Latest release adds a new workflow allowing you to export the epub to text, make any necessary modifications, then read the book as a text file. Any line beginning with "# " is considered a chapter break, and will be automatically inserted during export, named "# Part 1", etc. If you replace "Part 1" with whatever you want that section to be called it will be labeled that way in the audiobook metadata.
+- [x] Automatic chapter break detection
+- [x] Embeds cover art if specified
+- [x] Easy voice cloning with Coqui XTTS model
+- [x] 58 studio quality voices from Coqui AI
+- [x] Uses deepspeed if available for faster processing
+- [x] epub file must be DRM-free
+- [x] Will resume where it left off if interrupted
 
-**NOTE:** DeepSpeed support for XTTS has been added! If deepspeed is installed and you have a compatible GPU, it will be detected and used. For XTTS, this will yeild a 3x-4x speed improvement! Install deepspeed with `pip install deepspeed`.
 
-**NOTE:** The Coqui team released their curated XTTS voice models recently, and they sound great. A recent update here
-allows you to use these voices. You can generate samples of all the voices by running `python utils/generate-speaker-samples.py`. Check these voices out, they're allmost all amazing sounding! (GPU required). Also samples of the available XTTS voices, without installing the package first can be found there:
-https://github.com/rejuce/CoquiTTS_XTTS_Examples
+## 📖 Usage
+<details>
+<summary> Usage instructions</summary>
 
-Example usage: `epub2tts my-book.epub --engine xtts --speaker "Damien Black" --cover cover-image.jpg`
+## Quickest:
+Using VITS model, all defaults, no GPU required:
 
-**NOTE:** The Coqui team released v2 of their XTTS model and the quality is amazing! This latest release includes significant refactoring, and uses streaming inference for XTTS. Suggested usage is to include up to three wav file speaker samples, up to 30 seconds each. Check out the XTTS sample to get an idea of the quality you can expect. Also take a look in the utils directory for notes on finetuning your model for exceptional results. (GPU required)
+* `epub2tts mybook.epub` (To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p307`)
 
-Example usage: `epub2tts my-book.epub --start 4 --end 20 --xtts shadow-1.wav,shadow-2.wav,shadow-3.wav --cover cover-image.jpg`
+## Best quality:
+1. `epub2tts mybook.epub --export txt`
+2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+3. Choose a voice, [samples here](https://github.com/rejuce/CoquiTTS_XTTS_Examples)
+4. `epub2tts mybook.txt --engine xtts --speaker "Damien Black" --cover cover-image.jpg --sayparts`
+
+## Using your own voice clone:
+1. `epub2tts mybook.epub --scan`, determine which part to start and end on so you can skip TOC, etc.
+2. Secure 1-3 30 second clips of a speaker you really like (`voice-1.wav``, etc)
+3. `epub2tts my-book.epub --start 4 --end 20 --xtts voice-1.wav,voice-2.wav,voice-3.wav --cover cover-image.jpg`
+
+## All options
+* -h, --help - show this help message and exit
+* --engine [ENGINE] -Which TTS engine to use [tts|xtts|openai]
+* --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
+* --openai OPENAI_API_KEY -OpenAI API key if engine is OpenAI
+* --model [MODEL] - TTS model to use, default: tts_models/en/vctk/vits
+* --speaker SPEAKER - Speaker to use (ex p335 for VITS, onyx for OpenAI, "Damien BLack" for XTTS v2)
+* --scan - Scan the epub to show beginning of chapters, then exit
+* --start [START] - Chapter/part to start from
+* --end [END] - Chapter/part to end with
+* --language [LANGUAGE] - Language of the epub, default: en
+* --minratio [MINRATIO] - Minimum match ratio between text and transcript, 0 to disable whisper
+* --skiplinks - Skip reading any HTML links
+* --skipfootnotes - Try to skip reading footnotes
+* --sayparts - Say each part number at start of section
+* --bitrate [BITRATE] - Specify bitrate for output file
+* --debug  - Enable debug output
+* --export txt - Export epub contents to file (txt, md coming soon)
+* --no-deepspeed - Disable deepspeed
+* --cover image.jpg - jpg image to use for cover
+
+</details>
+
+## 🗒️ Release notes
+<details>
+<summary>Release notes </summary>
+
+* 20240114: Updated README
+* 20240111: Added support for Title & Author in text files
+* 20240110: Added support for "--cover image.jpg"
+
+</details>
+
+## Performance
+<details>
+<summary>Some benchmarks</summary>
+VITS model is the fastest, does not require GPU, but does not sound as good as using XTTS. We have not done any comparative benchmarks with that model.
 
 Typical inference times for xtts_v2 averaged over 4 processing chunks (about 4 sentences each) that can be expected:
-| Hardware                        | Inference Time   |
-|---------------------------------|------------------|
-| 20x CPU Xeon E5-2630 (without AVX) | 3.7x realtime  |
-| 20x CPU Xeon Silver 4214 (with AVX) | 1.7x realtime |
-| 8x CPU Xeon Silver 4214 (with AVX) | 2.0x realtime  |
-| 2x CPU Xeon Silver 4214 (with AVX) | 2.9x realtime  |
-| Intel N4100 Atom (NAS)           | 4.7x realtime  |
-| GPU RTX A2000 4GB (w/o deepspeed)  | 0.4x realtime  |
-| GPU RTX A2000 4GB (w deepspeed)  | 0.15x realtime  |
 
+```
+| Hardware                            | Inference Time |
+|-------------------------------------|----------------|
+| 20x CPU Xeon E5-2630 (without AVX)  | 3.7x realtime  |
+| 20x CPU Xeon Silver 4214 (with AVX) | 1.7x realtime  |
+| 8x CPU Xeon Silver 4214 (with AVX)  | 2.0x realtime  |
+| 2x CPU Xeon Silver 4214 (with AVX)  | 2.9x realtime  |
+| Intel N4100 Atom (NAS)              | 4.7x realtime  |
+| GPU RTX A2000 4GB (w/o deepspeed)   | 0.4x realtime  |
+| GPU RTX A2000 4GB (w deepspeed)     | 0.15x realtime |
+```
+</details>
 
+## 📦 Install
 
-## USAGE:
-Usage: 
-
-  EPUB: `epub2tts my-book.epub --cover cover-image.jpg`
-
-  EXPORT: `epub2tts my-book.epub --export txt`
-
-  TEXT: `epub2tts my-book.txt`
-
-To use Coqui XTTS, add: `--xtts <sample-1.wav>,<sample-2.wav>,<sample-3.wav> --language 'en' book.epub` (slow but sounds amazing!)
-
-To use OpenAI TTS, add: `--openai <your API key>` (Use speaker option to specify voice other than onyx: `--speaker shimmer`)
-
-To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p307`
-
-To skip reading any links, add: `--skiplinks`
-
-Using `--scan` will list excerpts of each chapter, then exit. This is helpful for finding which chapter to start and end on if you want to skip bibliography, TOC, etc.
-
-Using `--export txt` will export the entire book to text file. This will honor `--start` and `--end` arguments as well.
-
-To specify which chapter to start on (ex 3): `--start 3`
-
-To specify which chapter to end on (ex 20): `--end 20`
-
-To specify bitrate (ex 30k): `--bitrate 30k`
-
-To specify minimum comparison ratio between transcript of spoken text and original, default 88. Set to 0 to disable this comparison with whisper: `--minratio 95`
-
-To embed a cover image with the audiobook, add: `--cover your-cover.jpg`
-
-If epub2tts is interrupted or crashes, you can run it again with the same parameters and it will pick up where it left off, assuming it made it far enough to save some WAV files. If you want to start fresh, be sure to delete any of the wav files (with the same name as the epub) in the working directory before running again.
-
-## DOCKER INSTRUCTIONS:
+<details>
+<summary>Docker</summary>
 Voice models will be saved locally in `~/.local/share/tts`
+
+Docker usage does not reliably utilize GPU, if someone wants to work on improving this your PR will be very welcome!
 
 For *Linux and MacOS*:
 ```
@@ -82,8 +109,10 @@ docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w 
 #Example for reading parts 3 through 15 of "mybook.epub"
 docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
 ```
+</details>
 
-## MAC INSTALLATION:
+<details>
+<summary>MAC INSTALLATION</summary>
 This installation requires Python < 3.12 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
 Voice models will be saved locally in `~/.local/share/tts`
@@ -99,8 +128,10 @@ pyenv local 3.11
 python -m venv .venv && source .venv/bin/activate
 pip install .
 ```
+</details>
 
-## LINUX INSTALLATION:
+<details>
+<summary>LINUX INSTALLATION</summary>
 
 These instructions are for Ubuntu >22.04 (20.04 showed some depedency issues), but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use.
 
@@ -114,8 +145,40 @@ git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pip install .
 ```
+</details>
 
-## DEVELOPMENT INSTALL:
+<details>
+<summary>WINDOWS INSTALLATION</summary>
+
+Runnig epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps should work for running directly in windows.
+
+1. Install Microsoft C++ Build Tools. Download the installer from https://visualstudio.microsoft.com/visual-cpp-build-tools/ then run the downloaded file (vs_BuildTools.exe) and select the "C++ Buld tools" checkbox leaving all options at their default value. **Note:** This will require about 7 GB of space on C drive.
+1. Install espeak-ng from https://github.com/espeak-ng/espeak-ng/releases/latest
+2. [Install chocolaty](https://chocolatey.org/install)
+3. Install ffmpeg with the command `choco install ffmpeg``, make sure you are in an elevated powershell session.
+4. Install python 3.11 with the command `choco install python311`
+5. Install git with the command `choco install git`.
+6. Decide where you want your epub2tts project to live, documents is a common place. Once you've found a directory you're happy with, clone the project with `git clone https://github.com/aedocw/epub2tts` and cd epub2tts so you're now in your working directory.
+7. There are probably a few different ways you can go here, I personally opted for a venv to keep everything organized. Create a venv with the command `python -m venv .venv`
+8. Activate the venv, on windows the command is slightly different as you issue .venv\scripts\activate
+9. Install epub2tts along with the requirements with the command `pip install .`
+
+10. If all goes well, you should be able to call epub2tts from within your venv and update it from this directory going forward. To update, use `git pull` and then `pip install . --upgrade`
+
+**Some errors you may encounter**
+* Encountered error while trying to install package. ╰─> lxml
+  * Run `pip install lxml` to install the latest version manually then re-run `pip install .`
+* ffmpeg not found
+  * Rerun the command `choco install ffmpeg``, making sure you are in an elevated powershell session, outside of the virtual environment
+* NLTK: punkt not found
+  * Run the following to install it: `python -c "import nltk"` then `python -m nltk.downloader punkt`
+* Torch not compiled with CUDA enabled
+  * `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121`
+
+</details>
+
+<details>
+<summary>DEVELOPMENT INSTALL</summary>
 
 ```
 #clone the repo
@@ -129,4 +192,26 @@ source .venv/bin/activate
 sudo apt install espeak-ng ffmpeg
 pip install -r requirements.txt
 ```
+</details>
 
+## Author
+
+👤 **Christopher Aedo**
+
+- Website: [aedo.dev](aedo.dev)
+- GitHub: [@aedocw](https://github.com/aedocw)
+- LinkedIn: [@aedo](https://linkedin.com/in/aedo)
+
+👥 **Contributors**
+
+[![Contributors](https://contrib.rocks/image?repo=aedocw/epub2tts)](https://github.com/aedocw/epub2tts/graphs/contributors)
+
+## 🤝 Contributing
+
+Contributions, issues and feature requests are welcome!\
+Feel free to check the [issues page](https://github.com/bostrot/wsl2-distro-manager/issues).
+You can also take a look at the [contributing guide](https://github.com/bostrot/wsl2-distro-manager/blob/main/CONTRIBUTING.md).
+
+## Show your support
+
+Give a ⭐️ if this project helped you!
