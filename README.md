@@ -33,9 +33,9 @@ Using VITS model, all defaults, no GPU required:
 
 ## All options
 * -h, --help - show this help message and exit
-* --engine [ENGINE] -Which TTS engine to use [tts|xtts|openai]
+* --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai]
 * --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
-* --openai OPENAI_API_KEY -OpenAI API key if engine is OpenAI
+* --openai OPENAI_API_KEY - OpenAI API key if engine is OpenAI
 * --model [MODEL] - TTS model to use, default: tts_models/en/vctk/vits
 * --speaker SPEAKER - Speaker to use (ex p335 for VITS, onyx for OpenAI, "Damien BLack" for XTTS v2)
 * --scan - Scan the epub to show beginning of chapters, then exit
@@ -85,32 +85,6 @@ Typical inference times for xtts_v2 averaged over 4 processing chunks (about 4 s
 </details>
 
 ## 📦 Install
-
-<details>
-<summary>Docker</summary>
-
-Voice models will be saved locally in `~/.local/share/tts`
-
-Docker usage does not reliably utilize GPU, if someone wants to work on improving this your PR will be very welcome!
-
-For *Linux and MacOS*:
-```
-alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
-```
-
-For *Windows*:
-Pre-requisites:
-* Install Docker Desktop
-* From PowerShell run "mkdir ~/.local/share/tts"
-
-```
-#Example for running scan of "mybook.epub"
-docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
-
-#Example for reading parts 3 through 15 of "mybook.epub"
-docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
-```
-</details>
 
 <details>
 <summary>MAC INSTALLATION</summary>
@@ -180,6 +154,32 @@ Runnig epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps 
 </details>
 
 <details>
+<summary>DOCKER</summary>
+
+Voice models will be saved locally in `~/.local/share/tts`
+
+Docker usage does not reliably utilize GPU, if someone wants to work on improving this your PR will be very welcome!
+
+For *Linux and MacOS*:
+```
+alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
+```
+
+For *Windows*:
+Pre-requisites:
+* Install Docker Desktop
+* From PowerShell run "mkdir ~/.local/share/tts"
+
+```
+#Example for running scan of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
+
+#Example for reading parts 3 through 15 of "mybook.epub"
+docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
+```
+</details>
+
+<details>
 <summary>DEVELOPMENT INSTALL</summary>
 
 ```
@@ -211,7 +211,7 @@ pip install -r requirements.txt
 ## 🤝 Contributing
 
 Contributions, issues and feature requests are welcome!\
-Feel free to check the [issues page](https://github.com/aedocw/epub2tts/issues).
+Feel free to check the [issues page](https://github.com/aedocw/epub2tts/issues) or [discussions page](https://github.com/aedocw/epub2tts/discussions).
 
 ## Show your support
 
