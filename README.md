@@ -109,7 +109,7 @@ pip install .
 <details>
 <summary>LINUX INSTALLATION</summary>
 
-These instructions are for Ubuntu >22.04 (20.04 showed some depedency issues), but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use.
+These instructions are for Ubuntu >22.04 (20.04 showed some depedency issues), but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use. If you have an NVIDIA GPU you should also [install CUDA toolkit](https://developer.nvidia.com/cuda-downloads) to make use of deepspeed.
 
 Voice models will be saved locally in `~/.local/share/tts`
 
@@ -121,6 +121,9 @@ git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pip install .
 ```
+
+**NOTE:** If you have deepspeed installed, it may be detected but not work properly, causing errors. Try [installing CUDA toolkit](https://developer.nvidia.com/cuda-downloads) to see if that resolves the issue. If that does not fix it, add `--no-deepspeed` and it will not be used. Also in that case, open an issue with your details and we will look into it.
+
 </details>
 
 <details>
@@ -150,6 +153,7 @@ Runnig epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps 
   * Run the following to install it: `python -c "import nltk"` then `python -m nltk.downloader punkt`
 * Torch not compiled with CUDA enabled
   * `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121`
+* If you have deepspeed installed, it may be detected but not work properly, causing errors. If that is the case, add `--no-deepspeed` and it will not be used.
 
 </details>
 
