@@ -88,6 +88,7 @@ Typical inference times for xtts_v2 averaged over 4 processing chunks (about 4 s
 
 <details>
 <summary>Docker</summary>
+
 Voice models will be saved locally in `~/.local/share/tts`
 
 Docker usage does not reliably utilize GPU, if someone wants to work on improving this your PR will be very welcome!
@@ -113,6 +114,7 @@ docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w 
 
 <details>
 <summary>MAC INSTALLATION</summary>
+
 This installation requires Python < 3.12 and [Homebrew](https://brew.sh/) (I use homebrew to install espeak, [pyenv](https://stackoverflow.com/questions/36968425/how-can-i-install-multiple-versions-of-python-on-latest-os-x-and-use-them-in-par) and ffmpeg). Per [this bug](https://github.com/coqui-ai/TTS/issues/2052), mecab should also be installed via homebrew.
 
 Voice models will be saved locally in `~/.local/share/tts`
@@ -152,21 +154,21 @@ pip install .
 
 Runnig epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps should work for running directly in windows.
 
-1. Install Microsoft C++ Build Tools. Download the installer from https://visualstudio.microsoft.com/visual-cpp-build-tools/ then run the downloaded file (vs_BuildTools.exe) and select the "C++ Buld tools" checkbox leaving all options at their default value. **Note:** This will require about 7 GB of space on C drive.
-1. Install espeak-ng from https://github.com/espeak-ng/espeak-ng/releases/latest
-2. [Install chocolaty](https://chocolatey.org/install)
-3. Install ffmpeg with the command `choco install ffmpeg``, make sure you are in an elevated powershell session.
-4. Install python 3.11 with the command `choco install python311`
-5. Install git with the command `choco install git`.
-6. Decide where you want your epub2tts project to live, documents is a common place. Once you've found a directory you're happy with, clone the project with `git clone https://github.com/aedocw/epub2tts` and cd epub2tts so you're now in your working directory.
-7. There are probably a few different ways you can go here, I personally opted for a venv to keep everything organized. Create a venv with the command `python -m venv .venv`
-8. Activate the venv, on windows the command is slightly different as you issue .venv\scripts\activate
-9. Install epub2tts along with the requirements with the command `pip install .`
+1. Install Microsoft C++ Build Tools. Download the installer from https://visualstudio.microsoft.com/visual-cpp-build-tools/ then run the downloaded file `vs_BuildTools.exe` and select the "C++ Buld tools" checkbox leaving all options at their default value. **Note:** This will require about 7 GB of space on C drive.
+2. Install espeak-ng from https://github.com/espeak-ng/espeak-ng/releases/latest
+3. [Install chocolaty](https://chocolatey.org/install)
+4. Install ffmpeg with the command `choco install ffmpeg`, make sure you are in an elevated powershell session.
+5. Install python 3.11 with the command `choco install python311`
+6. Install git with the command `choco install git`.
+7. Decide where you want your epub2tts project to live, documents is a common place. Once you've found a directory you're happy with, clone the project with `git clone https://github.com/aedocw/epub2tts` and cd epub2tts so you're now in your working directory.
+8. There are probably a few different ways you can go here, I personally opted for a venv to keep everything organized. Create a venv with the command `python -m venv .venv`
+9. Activate the venv, on windows the command is slightly different as you issue `.venv\scripts\activate`
+10. Install epub2tts along with the requirements with the command `pip install .`
 
-10. If all goes well, you should be able to call epub2tts from within your venv and update it from this directory going forward. To update, use `git pull` and then `pip install . --upgrade`
+11. If all goes well, you should be able to call epub2tts from within your venv and update it from this directory going forward. To update, use `git pull` and then `pip install . --upgrade`
 
 **Some errors you may encounter**
-* Encountered error while trying to install package. ╰─> lxml
+* Encountered error while trying to install package lxml
   * Run `pip install lxml` to install the latest version manually then re-run `pip install .`
 * ffmpeg not found
   * Rerun the command `choco install ffmpeg``, making sure you are in an elevated powershell session, outside of the virtual environment
@@ -198,7 +200,7 @@ pip install -r requirements.txt
 
 👤 **Christopher Aedo**
 
-- Website: [aedo.dev](aedo.dev)
+- Website: [aedo.dev](https://aedo.dev)
 - GitHub: [@aedocw](https://github.com/aedocw)
 - LinkedIn: [@aedo](https://linkedin.com/in/aedo)
 
@@ -209,8 +211,7 @@ pip install -r requirements.txt
 ## 🤝 Contributing
 
 Contributions, issues and feature requests are welcome!\
-Feel free to check the [issues page](https://github.com/bostrot/wsl2-distro-manager/issues).
-You can also take a look at the [contributing guide](https://github.com/bostrot/wsl2-distro-manager/blob/main/CONTRIBUTING.md).
+Feel free to check the [issues page](https://github.com/aedocw/epub2tts/issues).
 
 ## Show your support
 
