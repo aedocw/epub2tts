@@ -22,6 +22,7 @@ import nltk
 from nltk.tokenize import sent_tokenize
 import torch, gc
 import torchaudio
+from transformers import GPT2Tokenizer
 from TTS.api import TTS
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
@@ -176,6 +177,7 @@ class EpubToAudiobook:
             .replace("◇", "")
             .replace(" . . . ", ", ")
             .replace("... ", ", ")
+            .replace(". . .", ". ")
             .replace("«", " ")
             .replace("»", " ")
             .replace("[", "")
@@ -252,7 +254,9 @@ class EpubToAudiobook:
         # takes list of sentences to read, reads through them and saves to file
         t0 = time.time()
         wav_chunks = []
-        sentence_list = sent_tokenize(sentences)
+        #sentence_list = sent_tokenize(sentences)
+        #Is this needed? Aren't these already chunked small enough?
+        sentence_list = self.split_text_into_chunks(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             print(sentence) if self.debug else None
@@ -322,6 +326,49 @@ class EpubToAudiobook:
                 yield combined
                 combined = sentence
         yield combined
+
+    def split_text_into_chunks(self, text, max_tokens=225):
+        tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        # lowercase the text
+        text = text.lower()
+        # Step 1: Split by new line
+        lines = text.split('\n')
+        # Remove empty lines
+        lines = [line for line in lines if line.strip()]
+        # Remove Note Lines starting with "{{" and ending with "}}"
+        lines = [line for line in lines if not (line.startswith("{{") and line.endswith("}}"))]
+        chunks = []
+        for line in lines:
+            line_tokens = tokenizer.tokenize(line)
+            line_length = len(line_tokens)
+            # Step 2: Check the length of the chunks
+            if line_length <= max_tokens:
+                chunks.append(line)
+            else:
+                # Step 3: Reduce by sentence if the line is longer than the max tokens
+                sentences = re.split(r'(?<=[.!?]) +', line)
+                current_chunk = []
+                current_length = 0
+
+                for sentence in sentences:
+                    sentence_tokens = tokenizer.tokenize(sentence)
+                    sentence_length = len(sentence_tokens)
+
+                    if current_length + sentence_length <= max_tokens:
+                        current_chunk.append(sentence)
+                        current_length += sentence_length
+                    else:
+                        # Add the current chunk to chunks and start a new chunk
+                        if current_chunk:
+                            chunks.append(' '.join(current_chunk).strip())
+
+                        current_chunk = [sentence]
+                        current_length = sentence_length
+
+                # Add the last chunk if it's not empty
+                if current_chunk:
+                    chunks.append(' '.join(current_chunk).strip())
+        return chunks
 
     def export(self, format):
         allowed_formats = ["txt"]
@@ -481,15 +528,11 @@ class EpubToAudiobook:
                     chapter = self.section_names[partnum] + ". " + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
-                sentences = sent_tokenize(chapter)
+                #sentences = sent_tokenize(chapter)
+                sentences = self.split_text_into_chunks(chapter)
                 #Drop any items that do NOT have at least one letter or number
                 sentences = [s for s in sentences if any(c.isalnum() for c in s)]
-                if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
-                    #we are using coqui voice, so make smaller chunks
-                    length = 500
-                else:
-                    length = 1000
-                sentence_groups = list(self.combine_sentences(sentences, length))
+                sentence_groups = sentences
                 for x in tqdm(range(len(sentence_groups))):
                     #skip if item is empty
                     if len(sentence_groups[x]) == 0:
