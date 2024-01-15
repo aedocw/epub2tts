@@ -109,7 +109,7 @@ pip install .
 <details>
 <summary>LINUX INSTALLATION</summary>
 
-These instructions are for Ubuntu >22.04 (20.04 showed some depedency issues), but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use. If you have an NVIDIA GPU you should also [install CUDA toolkit](https://developer.nvidia.com/cuda-downloads) to make use of deepspeed.
+These instructions are for Ubuntu 22.04 (20.04 showed some depedency issues), but should work (with appropriate package installer mods) for just about any repo. Ensure you have `ffmpeg` installed before use. If you have an NVIDIA GPU you should also [install CUDA toolkit](https://developer.nvidia.com/cuda-downloads) to make use of deepspeed.
 
 Voice models will be saved locally in `~/.local/share/tts`
 
