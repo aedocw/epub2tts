@@ -166,7 +166,7 @@ Docker usage does not reliably utilize GPU, if someone wants to work on improvin
 
 For *Linux and MacOS*:
 ```
-alias epub2tts='docker run -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
+alias epub2tts='docker run -e COQUI_TOS_AGREED=1 -v "$PWD:$PWD" -v ~/.local/share/tts:/root/.local/share/tts -w "$PWD" ghcr.io/aedocw/epub2tts:release'
 ```
 
 For *Windows*:
@@ -176,10 +176,10 @@ Pre-requisites:
 
 ```
 #Example for running scan of "mybook.epub"
-docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
+docker run -e COQUI_TOS_AGREED=1 -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
 
 #Example for reading parts 3 through 15 of "mybook.epub"
-docker run -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
+docker run -e COQUI_TOS_AGREED=1 -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
 ```
 </details>
 
