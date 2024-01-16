@@ -1,14 +1,15 @@
-> epub2tts is a free and open source python app to easily create a full-featured audiobook from an epub or text file using realistic text-to-speed from [Coqui AI TTS](https://github.com/coqui-ai/TTS).
+> epub2tts is a free and open source python app to easily create a full-featured audiobook from an epub or text file using realistic text-to-speech from [Coqui AI TTS](https://github.com/coqui-ai/TTS).
 
 ## 🚀 Features
 
+- [x] Creates standard format M4B audiobook file
 - [x] Automatic chapter break detection
 - [x] Embeds cover art if specified
 - [x] Easy voice cloning with Coqui XTTS model
 - [x] 58 studio quality voices from Coqui AI
 - [x] Uses deepspeed if available for faster processing
-- [x] epub file must be DRM-free
-- [x] Will resume where it left off if interrupted
+- [x] Resumes where it left off if interrupted
+- [x] NOTE: epub file must be DRM-free
 
 
 ## 📖 Usage
