@@ -486,7 +486,7 @@ class EpubToAudiobook:
                 if self.sayparts and len(self.section_names) == 0:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 elif self.sayparts and len(self.section_names) > 0:
-                    chapter = self.section_names[i] + ".\n" + self.chapters_to_read[i]
+                    chapter = self.section_names[i].strip() + ".\n" + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
                 sentences = sent_tokenize(chapter)
