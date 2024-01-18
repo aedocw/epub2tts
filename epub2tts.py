@@ -233,10 +233,13 @@ class EpubToAudiobook:
                 self.section_names.append(line.lstrip("# ").strip())
             sections = re.split(r"\n(?=#\s)", text)
             sections = [section.strip() for section in sections if section.strip()]
-            for section in sections:
+            for i, section in enumerate(sections):
                 lines = section.splitlines()
                 section = "\n".join(lines[1:])
                 self.chapters_to_read.append(section.strip())
+                print(f"Part: {len(self.chapters_to_read)}")
+                print(f"{self.section_names[i]}")
+                print(str(self.chapters_to_read[-1])[:256])
         else:
             while len(text) > max_len:
                 pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
@@ -245,7 +248,8 @@ class EpubToAudiobook:
                 print(str(self.chapters_to_read[-1])[:256])
                 text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
             self.chapters_to_read.append(text)
-        self.end = len(self.chapters_to_read)
+        if self.end == 999:
+            self.end = len(self.chapters_to_read)
         print(f"Section names: {self.section_names}") if self.debug else None
 
     def read_chunk_xtts(self, sentences, wav_file_path):
@@ -255,7 +259,11 @@ class EpubToAudiobook:
         sentence_list = sent_tokenize(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
-            print(sentence) if self.debug else None
+            if self.debug:
+                print(
+                    sentence
+                )
+                with open("debugout.txt", "a") as file: file.write(f"{sentence}\n")
             chunks = self.model.inference_stream(
                 sentence,
                 self.language,
@@ -478,7 +486,7 @@ class EpubToAudiobook:
                 if self.sayparts and len(self.section_names) == 0:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
                 elif self.sayparts and len(self.section_names) > 0:
-                    chapter = self.section_names[partnum] + ". " + self.chapters_to_read[i]
+                    chapter = self.section_names[i] + ".\n" + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
                 sentences = sent_tokenize(chapter)
@@ -490,6 +498,7 @@ class EpubToAudiobook:
                 else:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
+
                 for x in tqdm(range(len(sentence_groups))):
                     #skip if item is empty
                     if len(sentence_groups[x]) == 0:
@@ -521,18 +530,22 @@ class EpubToAudiobook:
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
                                         # assume we're using a multi-speaker model
-                                        print(
-                                            sentence_groups[x]
-                                        ) if self.debug else None
+                                        if self.debug:
+                                            print(
+                                                sentence_groups[x]
+                                            )
+                                            with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
                                             file_path=tempwav,
                                         )
                                     else:
-                                        print(
-                                            sentence_groups[x]
-                                        ) if self.debug else None
+                                        if self.debug:
+                                            print(
+                                                sentence_groups[x]
+                                            )
+                                            with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x], file_path=tempwav
                                         )
@@ -784,7 +797,7 @@ def main():
         no_deepspeed=args.no_deepspeed,
     )
 
-    print("Language selected: " + mybook.language)
+    print(f"Language selected: {mybook.language}")
 
     if mybook.sourcetype == "epub":
         mybook.get_chapters_epub()
