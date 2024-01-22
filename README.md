@@ -38,7 +38,7 @@ Using VITS model, all defaults, no GPU required:
 * --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
 * --openai OPENAI_API_KEY - OpenAI API key if engine is OpenAI
 * --model [MODEL] - TTS model to use, default: tts_models/en/vctk/vits
-* --speaker SPEAKER - Speaker to use (ex p335 for VITS, onyx for OpenAI, "Damien BLack" for XTTS v2)
+* --speaker SPEAKER - Speaker to use (ex p335 for VITS, onyx for OpenAI, "Damien Black" for XTTS v2)
 * --scan - Scan the epub to show beginning of chapters, then exit
 * --start [START] - Chapter/part to start from
 * --end [END] - Chapter/part to end with
