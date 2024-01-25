@@ -58,6 +58,7 @@ Using VITS model, all defaults, no GPU required:
 ## 🐞 Reporting bugs
 <details>
 <summary>How to report bugs/issues</summary>
+
 Thank you in advance for reporting any bugs/issues you encounter! If you are having issues, first please [search existing issues](https://github.com/aedocw/epub2tts/issues) to see if anyone else has run into something similar previously.
 
 If you've found something new, please open an issue and be sure to include:
