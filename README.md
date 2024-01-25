@@ -55,6 +55,20 @@ Using VITS model, all defaults, no GPU required:
 
 </details>
 
+## 🐞 Reporting bugs
+<details>
+<summary>How to report bugs/issues</summary>
+Thank you in advance for reporting any bugs/issues you encounter! If you are having issues, first please [search existing issues](https://github.com/aedocw/epub2tts/issues) to see if anyone else has run into something similar previously.
+
+If you've found something new, please open an issue and be sure to include:
+1. The full command you executed
+2. The platform (Linux, Windows, OSX, Docker)
+3. Your Python version if not using Docker
+4. Try running the command again with `--debug --minratio 0` added on, to get more information
+5. Relevant output around the crash, including the sentence (should be in debug output) if it crashed during a TTS step
+
+</details>
+
 ## 🗒️ Release notes
 <details>
 <summary>Release notes </summary>
