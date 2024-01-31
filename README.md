@@ -74,6 +74,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240131: [Repaired missing pause between chapters](https://github.com/aedocw/epub2tts/issues/204)
 * 20240114: Updated README
 * 20240111: Added support for Title & Author in text files
 * 20240110: Added support for "--cover image.jpg"
