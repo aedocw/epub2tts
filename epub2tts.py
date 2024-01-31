@@ -594,9 +594,8 @@ class EpubToAudiobook:
                 for chunkindex, chunk in enumerate(tqdm(chunks)):
                     audio_modified += chunk
                     audio_modified += one_sec_silence
-                # add extra 2sec silence at the end of each part/chapter if it's an epub
-                if self.sourcetype == "epub":
-                    audio_modified += two_sec_silence
+                # add extra 2sec silence at the end of each part/chapter
+                audio_modified += two_sec_silence
                 # Write modified audio to the final audio segment
                 audio_modified.export(outputwav, format="wav")
                 for f in tempfiles:
