@@ -286,8 +286,8 @@ class EpubToAudiobook:
                     chunk.to(device=self.device)
                 )  # Move chunk to available device
             # Add a short pause between sentences (e.g., X.XX seconds of silence)
-            if i < len(sentence_list) - 1:
-                silence_duration = int(24000 * 1.0)
+            if i < len(sentence_list):
+                silence_duration = int(24000 * .8)
                 silence = torch.zeros(
                     (silence_duration,), dtype=torch.float32, device=self.device
                 )  # Move silence tensor to available device
@@ -321,15 +321,20 @@ class EpubToAudiobook:
         ) if self.debug else None
         return ratio
 
+#    def combine_sentences(self, sentences, length=1000):
+#        combined = ""
+#        for sentence in sentences:
+#            if len(combined) + len(sentence) <= length:
+#                combined += sentence + " "
+#            else:
+#                yield combined
+#                combined = sentence
+#        yield combined
+
     def combine_sentences(self, sentences, length=1000):
-        combined = ""
         for sentence in sentences:
-            if len(combined) + len(sentence) <= length:
-                combined += sentence + " "
-            else:
-                yield combined
-                combined = sentence
-        yield combined
+            yield sentence
+
 
     def export(self, format):
         allowed_formats = ["txt"]
