@@ -321,20 +321,9 @@ class EpubToAudiobook:
         ) if self.debug else None
         return ratio
 
-#    def combine_sentences(self, sentences, length=1000):
-#        combined = ""
-#        for sentence in sentences:
-#            if len(combined) + len(sentence) <= length:
-#                combined += sentence + " "
-#            else:
-#                yield combined
-#                combined = sentence
-#        yield combined
-
     def combine_sentences(self, sentences, length=1000):
         for sentence in sentences:
             yield sentence
-
 
     def export(self, format):
         allowed_formats = ["txt"]
