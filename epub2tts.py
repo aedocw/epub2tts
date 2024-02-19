@@ -287,7 +287,7 @@ class EpubToAudiobook:
                 )  # Move chunk to available device
             # Add a short pause between sentences (e.g., X.XX seconds of silence)
             if i < len(sentence_list):
-                silence_duration = int(24000 * .8)
+                silence_duration = int(24000 * .6)
                 silence = torch.zeros(
                     (silence_duration,), dtype=torch.float32, device=self.device
                 )  # Move silence tensor to available device
