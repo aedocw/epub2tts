@@ -74,6 +74,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153
 * 20240131: [Repaired missing pause between chapters](https://github.com/aedocw/epub2tts/issues/204)
 * 20240114: Updated README
 * 20240111: Added support for Title & Author in text files
