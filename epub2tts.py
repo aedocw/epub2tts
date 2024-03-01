@@ -45,6 +45,7 @@ class EpubToAudiobook:
         skipfootnotes,
         sayparts,
         no_deepspeed,
+        skip_cleanup,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -62,6 +63,7 @@ class EpubToAudiobook:
         self.chapters_to_read = []
         self.section_names = []
         self.no_deepspeed = no_deepspeed
+        self.skip_cleanup = skip_cleanup
         self.title = self.bookname
         self.author = "Unknown"
         if source.endswith(".epub"):
@@ -183,6 +185,7 @@ class EpubToAudiobook:
             .replace("&", " and ")
             .replace(" GNU ", " new ")
             .replace("\n", " \n")
+            .replace("*", " ")
             .strip()
         )
         return text
@@ -199,7 +202,10 @@ class EpubToAudiobook:
         self.title = self.book.get_metadata("DC", "title")[0][0]
 
         for i in range(len(self.chapters)):
-            text = self.prep_text(self.chap2text(self.chapters[i]))
+            if self.skip_cleanup:
+                text = self.chap2text(self.chapters[i])
+            else:
+                text = self.prep_text(self.chap2text(self.chapters[i]))
             if len(text) < 150:
                 # too short to bother with
                 continue
@@ -225,7 +231,10 @@ class EpubToAudiobook:
             self.title = metadata.get("Title")
         if metadata.get("Author") != None:
             self.author = metadata.get("Author")
-        text = self.prep_text(text)
+        if self.skip_cleanup:
+            pass
+        else:
+            text = self.prep_text(text)
         max_len = 50000
         lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
         if lines_with_hashtag:
@@ -763,6 +772,11 @@ def main():
         help="Disable deepspeed",
     )
     parser.add_argument(
+        "--skip-cleanup",
+        action="store_true",
+        help="Skip text cleanup",
+    )
+    parser.add_argument(
         "--cover",
         type=str,
         help="jpg image to use for cover",
@@ -788,6 +802,7 @@ def main():
         skipfootnotes=args.skipfootnotes,
         sayparts=args.sayparts,
         no_deepspeed=args.no_deepspeed,
+        skip_cleanup=args.skip_cleanup,
     )
 
     print(f"Language selected: {mybook.language}")
