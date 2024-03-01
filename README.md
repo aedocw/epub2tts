@@ -46,6 +46,7 @@ Using VITS model, all defaults, no GPU required:
 * --minratio [MINRATIO] - Minimum match ratio between text and transcript, 0 to disable whisper
 * --skiplinks - Skip reading any HTML links
 * --skipfootnotes - Try to skip reading footnotes
+* --skip-cleanup - Do not replace special characters with ","
 * --sayparts - Say each part number at start of section
 * --bitrate [BITRATE] - Specify bitrate for output file
 * --debug  - Enable debug output
@@ -74,6 +75,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
 * 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153
 * 20240131: [Repaired missing pause between chapters](https://github.com/aedocw/epub2tts/issues/204)
 * 20240114: Updated README
