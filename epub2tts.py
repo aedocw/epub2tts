@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import warnings
+import wave
 
 from bs4 import BeautifulSoup
 import ebooklib
@@ -16,6 +17,7 @@ import noisereduce
 from openai import OpenAI
 from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
+from piper.voice import PiperVoice
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 import nltk
@@ -81,6 +83,9 @@ class EpubToAudiobook:
             )
         else:
             self.xtts_model = f"{self.tts_dir}/{model_name}"
+        if engine == "piper" and model_name == "tts_models/en/vctk/vits":
+            voicedir = os.path.expanduser('~/.local/piper/')
+            self.model_name = voicedir+"en_US-lessac-medium.onnx"
         self.whispermodel = whisper.load_model("tiny")
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
@@ -472,6 +477,9 @@ class EpubToAudiobook:
                     print("Continuing...")
                     break
             client = OpenAI(api_key=self.openai)
+        elif engine == "piper":
+            print(f"Engine is Piper, model is {model_name}")
+            self.voice = PiperVoice.load(model_name)
         else:
             print(f"Engine is TTS, model is {model_name}")
             self.tts = TTS(model_name).to(self.device)
@@ -529,6 +537,9 @@ class EpubToAudiobook:
                                         input=sentence_groups[x],
                                     )
                                     response.stream_to_file(tempwav)
+                                elif engine == "piper":
+                                    self.minratio = 0
+                                    audio = self.voice.synthesize(sentence_groups[x],tempwav)
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
@@ -675,7 +686,7 @@ def main():
         default="tts",
         nargs="?",
         const="tts",
-        help="Which TTS to use [tts|xtts|openai]",
+        help="Which TTS to use [tts|xtts|openai|piper]",
     )
     parser.add_argument(
         "--xtts",

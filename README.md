@@ -75,6 +75,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240304: Added https://github.com/rhasspy/piper/ TTS engine
 * 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
 * 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153
 * 20240131: [Repaired missing pause between chapters](https://github.com/aedocw/epub2tts/issues/204)

@@ -9,6 +9,7 @@ noisereduce
 openai
 openai-whisper
 pedalboard
+piper-tts
 pydub
 pysbd
 python-Levenshtein
