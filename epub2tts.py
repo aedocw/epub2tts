@@ -409,6 +409,10 @@ class EpubToAudiobook:
             if speaker == None:
                 speaker = "onyx"
             voice_name = "-" + speaker
+        elif engine == "piper":
+            if speaker == None:
+                speaker = "default"
+            voice_name = "-" + speaker
         elif engine == "tts":
             if speaker == None:
                 speaker = "p335"
