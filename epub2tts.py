@@ -83,7 +83,7 @@ class EpubToAudiobook:
             )
         else:
             self.xtts_model = f"{self.tts_dir}/{model_name}"
-        if engine == "piper" and model_name == "tts_models/en/vctk/vits":
+        if engine == "piper":
             voicedir = os.path.expanduser('~/.local/piper/')
             self.model_name = voicedir+"en_US-lessac-medium.onnx"
         self.whispermodel = whisper.load_model("tiny")
@@ -483,7 +483,7 @@ class EpubToAudiobook:
             client = OpenAI(api_key=self.openai)
         elif engine == "piper":
             print(f"Engine is Piper, model is {model_name}")
-            self.voice = PiperVoice.load(model_name)
+            self.voice = PiperVoice.load(self.model_name)
         else:
             print(f"Engine is TTS, model is {model_name}")
             self.tts = TTS(model_name).to(self.device)
@@ -543,7 +543,8 @@ class EpubToAudiobook:
                                     response.stream_to_file(tempwav)
                                 elif engine == "piper":
                                     self.minratio = 0
-                                    audio = self.voice.synthesize(sentence_groups[x],tempwav)
+                                    wav_file = wave.open(tempwav, 'w')
+                                    audio = self.voice.synthesize(sentence_groups[x],wav_file)
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
@@ -582,7 +583,7 @@ class EpubToAudiobook:
                                 print(
                                     f"Error: {e} ... Retrying ({retries} retries left)"
                                 )
-                        if retries == 0:
+                        if retries == 0 and self.minratio > 0:
                             print(
                                 f"Something is wrong with the audio ({ratio}): {tempwav}"
                             )
@@ -837,7 +838,7 @@ def main():
         voice_samples=args.xtts,
         engine=args.engine,
         openai=args.openai,
-        model_name=args.model,
+        model_name=mybook.model,
         speaker=args.speaker,
         bitrate=args.bitrate,
     )
