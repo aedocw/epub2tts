@@ -838,7 +838,7 @@ def main():
         voice_samples=args.xtts,
         engine=args.engine,
         openai=args.openai,
-        model_name=mybook.model,
+        model_name=mybook.model_name,
         speaker=args.speaker,
         bitrate=args.bitrate,
     )
