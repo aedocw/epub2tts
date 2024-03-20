@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import os
 import pkg_resources
 import re
@@ -10,6 +11,7 @@ import warnings
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
+import edge_tts
 from fuzzywuzzy import fuzz
 from mutagen import mp4
 import noisereduce
@@ -369,6 +371,10 @@ class EpubToAudiobook:
         else:
             print(f"Cover image {cover_img} not found")
 
+    async def edgespeak(self, sentence, speaker, filename):
+        communicate = edge_tts.Communicate(sentence, speaker)
+        await communicate.save(filename)
+
     def extract_title_author(self, text):
         lines = text.split('\n')
         metadata = {}
@@ -403,6 +409,10 @@ class EpubToAudiobook:
         elif engine == "openai":
             if speaker == None:
                 speaker = "onyx"
+            voice_name = "-" + speaker
+        elif engine == "edge":
+            if speaker == None:
+                speaker = "en-US-AndrewNeural"
             voice_name = "-" + speaker
         elif engine == "tts":
             if speaker == None:
@@ -472,6 +482,8 @@ class EpubToAudiobook:
                     print("Continuing...")
                     break
             client = OpenAI(api_key=self.openai)
+        elif engine == "edge":
+            print("Engine is Edge TTS")
         else:
             print(f"Engine is TTS, model is {model_name}")
             self.tts = TTS(model_name).to(self.device)
@@ -529,6 +541,13 @@ class EpubToAudiobook:
                                         input=sentence_groups[x],
                                     )
                                     response.stream_to_file(tempwav)
+                                elif engine == "edge":
+                                    self.minratio = 0
+                                    if self.debug:
+                                        print(
+                                            sentence_groups[x]
+                                        )
+                                    asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
@@ -571,13 +590,10 @@ class EpubToAudiobook:
                             print(
                                 f"Something is wrong with the audio ({ratio}): {tempwav}"
                             )
-                            # sys.exit()
-                        if engine == "openai":
+                        if engine == "openai" or engine == "edge":
                             temp = AudioSegment.from_mp3(tempwav)
                         else:
                             temp = AudioSegment.from_wav(tempwav)
-                        #temp.export(tempflac, format="flac")
-                        #os.remove(tempwav)
                     tempfiles.append(tempwav)
                 tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
@@ -675,7 +691,7 @@ def main():
         default="tts",
         nargs="?",
         const="tts",
-        help="Which TTS to use [tts|xtts|openai]",
+        help="Which TTS to use [tts|xtts|openai|edge]",
     )
     parser.add_argument(
         "--xtts",
