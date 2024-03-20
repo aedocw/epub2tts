@@ -5,6 +5,7 @@
 - [x] Creates standard format M4B audiobook file
 - [x] Automatic chapter break detection
 - [x] Embeds cover art if specified
+- [x] Can use MS Edge for free cloud-based TTS
 - [x] Easy voice cloning with Coqui XTTS model
 - [x] 58 studio quality voices from Coqui AI
 - [x] Uses deepspeed if available for faster processing
@@ -16,25 +17,33 @@
 <details>
 <summary> Usage instructions</summary>
 
-## Quickest:
+## Extract epub contents to text:
+1. `epub2tts mybook.epub --extract txt`
+2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+
+## Default audiobook, fairly quick:
 Using VITS model, all defaults, no GPU required:
 
 * `epub2tts mybook.epub` (To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p307`)
 
-## Best quality:
-1. `epub2tts mybook.epub --export txt`
-2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
-3. Choose a voice, [samples here](https://github.com/rejuce/CoquiTTS_XTTS_Examples)
-4. `epub2tts mybook.txt --engine xtts --speaker "Damien Black" --cover cover-image.jpg --sayparts`
+## MS Edge Cloud TTS:
+Uses [Microsoft Edge TTS](https://github.com/rany2/edge-tts/) in the cloud, FREE, only minimal CPU required, and it's pretty fast (100 minutes for 7hr book for instance). Many voices and languages to choose from, and the quality is really good (listen to `sample-en-US-AvaNeural-edge.m4b` for an example).
 
-## Using your own voice clone:
+* List available voices with `edge-tts --list-voices`, default speaker is `en-US-AndrewNeural` if `--speaker` is not specified.
+* `epub2tts mybook.txt --engine edge --speaker en-US-AvaNeural --cover cover-image.jpg --sayparts`
+
+## XTTS with Coqui Studio voice:
+1. Choose a studio voice, [samples here](https://github.com/rejuce/CoquiTTS_XTTS_Examples)
+2. `epub2tts mybook.txt --engine xtts --speaker "Damien Black" --cover cover-image.jpg --sayparts`
+
+## XTTS using your own voice clone:
 1. `epub2tts mybook.epub --scan`, determine which part to start and end on so you can skip TOC, etc.
 2. Secure 1-3 30 second clips of a speaker you really like (`voice-1.wav``, etc)
 3. `epub2tts my-book.epub --start 4 --end 20 --xtts voice-1.wav,voice-2.wav,voice-3.wav --cover cover-image.jpg`
 
 ## All options
 * -h, --help - show this help message and exit
-* --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai]
+* --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai|edge]
 * --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
 * --openai OPENAI_API_KEY - OpenAI API key if engine is OpenAI
 * --model [MODEL] - TTS model to use, default: tts_models/en/vctk/vits
@@ -75,6 +84,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240320: Added MS Edge cloud TTS support
 * 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
 * 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153
 * 20240131: [Repaired missing pause between chapters](https://github.com/aedocw/epub2tts/issues/204)
