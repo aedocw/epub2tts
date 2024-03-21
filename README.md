@@ -230,6 +230,19 @@ pip install -r requirements.txt
 ```
 </details>
 
+
+## Updating
+
+<details>
+<summary>UPDATING YOUR INSTALLATION</summary>
+
+1. cd to repo directory
+2. `git pull`
+3. Activate virtual environment you installed epub2tts in if you installed in a virtual environment
+4. `pip install . --upgrade`
+</details>
+
+
 ## Author
 
 👤 **Christopher Aedo**
