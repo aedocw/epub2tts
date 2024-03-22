@@ -18,7 +18,7 @@
 <summary> Usage instructions</summary>
 
 ## Extract epub contents to text:
-1. `epub2tts mybook.epub --extract txt`
+1. `epub2tts mybook.epub --export txt`
 2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
 
 ## Default audiobook, fairly quick:
