@@ -146,6 +146,8 @@ Voice models will be saved locally in `~/.local/share/tts`
 ```
 #install dependencies
 sudo apt install espeak-ng ffmpeg
+#If you have a CUDA-compatible GPU, run:
+sudo apt install nvidia-cuda-toolkit
 #clone the repo
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
