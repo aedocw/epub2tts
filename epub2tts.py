@@ -87,6 +87,8 @@ class EpubToAudiobook:
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
             self.device = "cuda"
+        elif torch.backends.mps.is_available():
+            self.device = "mps"
         else:
             self.device = "cpu"
         # Make sure we've got nltk punkt
@@ -433,6 +435,9 @@ class EpubToAudiobook:
                 print("Using GPU")
                 print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
                 self.device = "cuda"
+            elif torch.backends.mps.is_available():
+                self.device = "mps"
+                print("Using GPU")
             else:
                 print("Not enough VRAM on GPU or CUDA not found. Using CPU")
                 self.device = "cpu"
@@ -632,6 +637,7 @@ class EpubToAudiobook:
             )
             gc.collect()
             torch.cuda.empty_cache()
+            torch.mps.empty_cache()
         outputm4a = self.output_filename.replace("m4b", "m4a")
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
