@@ -48,6 +48,7 @@ class EpubToAudiobook:
         sayparts,
         no_deepspeed,
         skip_cleanup,
+        audioformat,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -68,6 +69,7 @@ class EpubToAudiobook:
         self.skip_cleanup = skip_cleanup
         self.title = self.bookname
         self.author = "Unknown"
+        self.audioformat = audioformat.lower()
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -638,22 +640,50 @@ class EpubToAudiobook:
             for filename in files:
                 filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
-        ffmpeg_command = [
-            "ffmpeg",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            filelist,
-            "-codec:a",
-            "aac",
-            "-b:a",
-            bitrate,
-            "-f",
-            "ipod",
-            outputm4a,
-        ]
+
+        if self.audioformat == "wav":
+            outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
+            self.output_filename = self.output_filename.replace(".m4b", ".wav")
+            ffmpeg_command = [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                filelist,
+                outputm4a,
+            ]
+        elif self.audioformat == "flac":
+            outputm4a = outputm4a.replace(".m4a", "_without_metadata.flac")
+            self.output_filename = self.output_filename.replace(".m4b", ".flac")
+            ffmpeg_command = [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                filelist,
+                outputm4a,
+            ]
+        else:
+            ffmpeg_command = [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                filelist,
+                "-codec:a",
+                "aac",
+                "-b:a",
+                bitrate,
+                "-f",
+                "ipod",
+                outputm4a,
+            ]
         subprocess.run(ffmpeg_command)
         self.generate_metadata(files)
         ffmpeg_command = [
@@ -765,6 +795,12 @@ def main():
         help="Say each part number at start of section"
     )
     parser.add_argument(
+        "--audioformat", 
+        type=str,
+        default="m4b",
+        help="Audio format of the output file (m4b [default], wav, flac)"
+    )
+    parser.add_argument(
         "--bitrate",
         type=str,
         nargs="?",
@@ -819,6 +855,7 @@ def main():
         sayparts=args.sayparts,
         no_deepspeed=args.no_deepspeed,
         skip_cleanup=args.skip_cleanup,
+        audioformat=args.audioformat,
     )
 
     print(f"Language selected: {mybook.language}")
