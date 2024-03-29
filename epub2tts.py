@@ -69,7 +69,7 @@ class EpubToAudiobook:
         self.skip_cleanup = skip_cleanup
         self.title = self.bookname
         self.author = "Unknown"
-        self.audioformat = audioformat.lower()
+        self.audioformat = [i.lower() for i in audioformat.split(",")]
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -641,68 +641,70 @@ class EpubToAudiobook:
                 filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
 
-        if self.audioformat == "wav":
-            outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
-            self.output_filename = self.output_filename.replace(".m4b", ".wav")
+        for i in self.audioformat:
+            if i == "wav":
+                outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
+                self.output_filename = self.output_filename.replace(".m4b", ".wav")
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    outputm4a,
+                ]
+            elif i == "flac":
+                outputm4a = outputm4a.replace(".m4a", "_without_metadata.flac")
+                self.output_filename = self.output_filename.replace(".m4b", ".flac")
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    outputm4a,
+                ]
+            elif i == "m4b":
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    "-codec:a",
+                    "aac",
+                    "-b:a",
+                    bitrate,
+                    "-f",
+                    "ipod",
+                    outputm4a,
+                ]
+            subprocess.run(ffmpeg_command)
+            self.generate_metadata(files)
             ffmpeg_command = [
                 "ffmpeg",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
                 "-i",
-                filelist,
                 outputm4a,
-            ]
-        elif self.audioformat == "flac":
-            outputm4a = outputm4a.replace(".m4a", "_without_metadata.flac")
-            self.output_filename = self.output_filename.replace(".m4b", ".flac")
-            ffmpeg_command = [
-                "ffmpeg",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
                 "-i",
-                filelist,
-                outputm4a,
+                self.ffmetadatafile,
+                "-map_metadata",
+                "1",
+                "-codec",
+                "copy",
+                self.output_filename,
             ]
-        else:
-            ffmpeg_command = [
-                "ffmpeg",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                filelist,
-                "-codec:a",
-                "aac",
-                "-b:a",
-                bitrate,
-                "-f",
-                "ipod",
-                outputm4a,
-            ]
-        subprocess.run(ffmpeg_command)
-        self.generate_metadata(files)
-        ffmpeg_command = [
-            "ffmpeg",
-            "-i",
-            outputm4a,
-            "-i",
-            self.ffmetadatafile,
-            "-map_metadata",
-            "1",
-            "-codec",
-            "copy",
-            self.output_filename,
-        ]
-        subprocess.run(ffmpeg_command)
+            subprocess.run(ffmpeg_command)
+            if not self.debug: # Leave the files if debugging
+                os.remove(outputm4a)
         if not self.debug: # Leave the files if debugging
             os.remove(filelist)
             os.remove(self.ffmetadatafile)
-            os.remove(outputm4a)
             for f in files:
                 os.remove(f)
         print(self.output_filename + " complete")
@@ -798,7 +800,7 @@ def main():
         "--audioformat", 
         type=str,
         default="m4b",
-        help="Audio format of the output file (m4b [default], wav, flac)"
+        help="One or multiple audio format separate by comma for the output file (m4b [default], wav, flac)"
     )
     parser.add_argument(
         "--bitrate",
