@@ -253,6 +253,8 @@ class EpubToAudiobook:
                 else:
                     self.section_speakers.append(speaker)
                     self.section_names.append(line.lstrip("# ").strip())
+                print(f"Section speakers: {self.section_speakers}")
+                print(f"Section names: {self.section_names}")
             sections = re.split(r"\n(?=#\s)", text)
             sections = [section.strip() for section in sections if section.strip()]
             for i, section in enumerate(sections):
@@ -418,18 +420,6 @@ class EpubToAudiobook:
                 )
             else:
                 voice_name = "-" + speaker.replace(" ", "-").lower()
-        elif engine == "openai":
-            if speaker == None:
-                speaker = "onyx"
-            voice_name = "-" + speaker
-        elif engine == "edge":
-            if speaker == None:
-                speaker = "en-US-AndrewNeural"
-            voice_name = "-" + speaker
-        elif engine == "tts":
-            if speaker == None:
-                speaker = "p335"
-            voice_name = "-" + speaker
         else:
             voice_name = "-" + speaker
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
@@ -559,8 +549,8 @@ class EpubToAudiobook:
                                         print(
                                             sentence_groups[x]
                                         )
-                                    if self.section_speakers[x] != None:
-                                        speaker = self.section_speakers[x]
+                                    if self.section_speakers[i] != None:
+                                        speaker = self.section_speakers[i]
                                     asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
@@ -571,6 +561,8 @@ class EpubToAudiobook:
                                                 sentence_groups[x]
                                             )
                                             with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
+                                        if self.section_speakers[i] != None:
+                                            speaker = self.section_speakers[i]
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
@@ -873,12 +865,21 @@ def main():
     )
 
     print(f"Language selected: {mybook.language}")
+    if args.engine == "openai" and args.speaker == None:
+        speaker = "onyx"
+    elif args.engine == "edge" and args.speaker == None:
+        speaker = "en-US-AndrewNeural"
+    elif args.engine == "tts" and args.speaker == None:
+        speaker = "p335"
+    else:
+        speaker = args.speaker
+    print(f"in main, Speaker is {speaker}")
 
     if mybook.sourcetype == "epub":
         mybook.get_chapters_epub()
     else:
         mybook.get_chapters_text(
-            speaker=args.speaker,
+            speaker=speaker,
         )
     if args.scan:
         sys.exit()
@@ -887,12 +888,13 @@ def main():
             format=args.export,
         )
         sys.exit()
+
     mybook.read_book(
         voice_samples=args.xtts,
         engine=args.engine,
         openai=args.openai,
         model_name=args.model,
-        speaker=args.speaker,
+        speaker=speaker,
         bitrate=args.bitrate,
     )
     if args.cover is not None:
