@@ -65,6 +65,7 @@ class EpubToAudiobook:
         self.chapters = []
         self.chapters_to_read = []
         self.section_names = []
+        self.section_speakers = []
         self.no_deepspeed = no_deepspeed
         self.skip_cleanup = skip_cleanup
         self.title = self.bookname
@@ -227,7 +228,7 @@ class EpubToAudiobook:
         if self.end == 999:
             self.end = len(self.chapters_to_read)
 
-    def get_chapters_text(self):
+    def get_chapters_text(self, speaker):
         with open(self.source, "r") as file:
             text = file.read()
         metadata, text = self.extract_title_author(text)
@@ -243,7 +244,15 @@ class EpubToAudiobook:
         lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
         if lines_with_hashtag:
             for line in lines_with_hashtag:
-                self.section_names.append(line.lstrip("# ").strip())
+                if '%' in line: # Was a new speaker specified?
+                    parts = line.split('%')
+                    if speaker != parts[1].strip():
+                        speaker = parts[1].strip()
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(parts[0].lstrip("# ").strip())
+                else:
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(line.lstrip("# ").strip())
             sections = re.split(r"\n(?=#\s)", text)
             sections = [section.strip() for section in sections if section.strip()]
             for i, section in enumerate(sections):
@@ -252,6 +261,7 @@ class EpubToAudiobook:
                 self.chapters_to_read.append(section.strip())
                 print(f"Part: {len(self.chapters_to_read)}")
                 print(f"{self.section_names[i]}")
+                print(f"Speaker: {self.section_speakers[i]}")
                 print(str(self.chapters_to_read[-1])[:256])
         else:
             while len(text) > max_len:
@@ -549,6 +559,8 @@ class EpubToAudiobook:
                                         print(
                                             sentence_groups[x]
                                         )
+                                    if self.section_speakers[x] != None:
+                                        speaker = self.section_speakers[x]
                                     asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
@@ -865,7 +877,9 @@ def main():
     if mybook.sourcetype == "epub":
         mybook.get_chapters_epub()
     else:
-        mybook.get_chapters_text()
+        mybook.get_chapters_text(
+            speaker=args.speaker,
+        )
     if args.scan:
         sys.exit()
     if args.export is not None:

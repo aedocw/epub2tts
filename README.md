@@ -19,7 +19,8 @@
 
 ## Extract epub contents to text:
 1. `epub2tts mybook.epub --export txt`
-2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+2. **edit mybook.txt**, replacing `# Part 1` etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+3. The speaker can be set to change per chapter by appending `%<speaker>` after the chapter name, for instance `# Chapter One %en-US-AvaMultilingualNeural`
 
 ## Default audiobook, fairly quick:
 Using VITS model, all defaults, no GPU required:
