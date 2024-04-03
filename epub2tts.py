@@ -199,7 +199,7 @@ class EpubToAudiobook:
         pattern = r'\s*\d+\.\s.*$'  # Matches lines starting with numbers followed by a dot and whitespace
         return re.sub(pattern, '', text, flags=re.MULTILINE)
 
-    def get_chapters_epub(self):
+    def get_chapters_epub(self, speaker):
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 self.chapters.append(item.get_content())
@@ -224,6 +224,7 @@ class EpubToAudiobook:
                 continue
             print(text[:256])
             self.chapters_to_read.append(text)
+            self.section_speakers.append(speaker)
         print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
             self.end = len(self.chapters_to_read)
@@ -266,6 +267,7 @@ class EpubToAudiobook:
                 print(f"Speaker: {self.section_speakers[i]}")
                 print(str(self.chapters_to_read[-1])[:256])
         else:
+            self.section_speakers.append(speaker)
             while len(text) > max_len:
                 pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
                 self.chapters_to_read.append(text[:pos])
@@ -876,7 +878,9 @@ def main():
     print(f"in main, Speaker is {speaker}")
 
     if mybook.sourcetype == "epub":
-        mybook.get_chapters_epub()
+        mybook.get_chapters_epub(
+            speaker=speaker,
+        )
     else:
         mybook.get_chapters_text(
             speaker=speaker,

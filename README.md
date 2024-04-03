@@ -85,6 +85,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240403: Added support for specifying speaker per chapter, https://github.com/aedocw/epub2tts/issues/229
 * 20240320: Added MS Edge cloud TTS support
 * 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
 * 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153
