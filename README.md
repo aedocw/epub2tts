@@ -19,7 +19,8 @@
 
 ## Extract epub contents to text:
 1. `epub2tts mybook.epub --export txt`
-2. **edit mybook.txt**, replacing "# Part 1" etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+2. **edit mybook.txt**, replacing `# Part 1` etc with desired chapter names, and removing front matter like table of contents and anything else you do not want read. **Note:** First two lines can be Title: and Author: to use that in audiobook metadata.
+3. The speaker can be set to change per chapter by appending `%<speaker>` after the chapter name, for instance `# Chapter One %en-US-AvaMultilingualNeural`
 
 ## Default audiobook, fairly quick:
 Using VITS model, all defaults, no GPU required:
@@ -84,6 +85,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20240403: Added support for specifying speaker per chapter, https://github.com/aedocw/epub2tts/issues/229
 * 20240320: Added MS Edge cloud TTS support
 * 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
 * 20240222: Implemented pause between sentences, https://github.com/aedocw/epub2tts/issues/208 and https://github.com/aedocw/epub2tts/issues/153

@@ -65,6 +65,7 @@ class EpubToAudiobook:
         self.chapters = []
         self.chapters_to_read = []
         self.section_names = []
+        self.section_speakers = []
         self.no_deepspeed = no_deepspeed
         self.skip_cleanup = skip_cleanup
         self.title = self.bookname
@@ -198,7 +199,7 @@ class EpubToAudiobook:
         pattern = r'\s*\d+\.\s.*$'  # Matches lines starting with numbers followed by a dot and whitespace
         return re.sub(pattern, '', text, flags=re.MULTILINE)
 
-    def get_chapters_epub(self):
+    def get_chapters_epub(self, speaker):
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 self.chapters.append(item.get_content())
@@ -223,11 +224,12 @@ class EpubToAudiobook:
                 continue
             print(text[:256])
             self.chapters_to_read.append(text)
+            self.section_speakers.append(speaker)
         print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
             self.end = len(self.chapters_to_read)
 
-    def get_chapters_text(self):
+    def get_chapters_text(self, speaker):
         with open(self.source, "r") as file:
             text = file.read()
         metadata, text = self.extract_title_author(text)
@@ -243,7 +245,17 @@ class EpubToAudiobook:
         lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
         if lines_with_hashtag:
             for line in lines_with_hashtag:
-                self.section_names.append(line.lstrip("# ").strip())
+                if '%' in line: # Was a new speaker specified?
+                    parts = line.split('%')
+                    if speaker != parts[1].strip():
+                        speaker = parts[1].strip()
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(parts[0].lstrip("# ").strip())
+                else:
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(line.lstrip("# ").strip())
+                print(f"Section speakers: {self.section_speakers}")
+                print(f"Section names: {self.section_names}")
             sections = re.split(r"\n(?=#\s)", text)
             sections = [section.strip() for section in sections if section.strip()]
             for i, section in enumerate(sections):
@@ -252,8 +264,10 @@ class EpubToAudiobook:
                 self.chapters_to_read.append(section.strip())
                 print(f"Part: {len(self.chapters_to_read)}")
                 print(f"{self.section_names[i]}")
+                print(f"Speaker: {self.section_speakers[i]}")
                 print(str(self.chapters_to_read[-1])[:256])
         else:
+            self.section_speakers.append(speaker)
             while len(text) > max_len:
                 pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
                 self.chapters_to_read.append(text[:pos])
@@ -408,18 +422,6 @@ class EpubToAudiobook:
                 )
             else:
                 voice_name = "-" + speaker.replace(" ", "-").lower()
-        elif engine == "openai":
-            if speaker == None:
-                speaker = "onyx"
-            voice_name = "-" + speaker
-        elif engine == "edge":
-            if speaker == None:
-                speaker = "en-US-AndrewNeural"
-            voice_name = "-" + speaker
-        elif engine == "tts":
-            if speaker == None:
-                speaker = "p335"
-            voice_name = "-" + speaker
         else:
             voice_name = "-" + speaker
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
@@ -549,6 +551,8 @@ class EpubToAudiobook:
                                         print(
                                             sentence_groups[x]
                                         )
+                                    if self.section_speakers[i] != None:
+                                        speaker = self.section_speakers[i]
                                     asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
@@ -559,6 +563,8 @@ class EpubToAudiobook:
                                                 sentence_groups[x]
                                             )
                                             with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
+                                        if self.section_speakers[i] != None:
+                                            speaker = self.section_speakers[i]
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
@@ -861,11 +867,24 @@ def main():
     )
 
     print(f"Language selected: {mybook.language}")
+    if args.engine == "openai" and args.speaker == None:
+        speaker = "onyx"
+    elif args.engine == "edge" and args.speaker == None:
+        speaker = "en-US-AndrewNeural"
+    elif args.engine == "tts" and args.speaker == None:
+        speaker = "p335"
+    else:
+        speaker = args.speaker
+    print(f"in main, Speaker is {speaker}")
 
     if mybook.sourcetype == "epub":
-        mybook.get_chapters_epub()
+        mybook.get_chapters_epub(
+            speaker=speaker,
+        )
     else:
-        mybook.get_chapters_text()
+        mybook.get_chapters_text(
+            speaker=speaker,
+        )
     if args.scan:
         sys.exit()
     if args.export is not None:
@@ -873,12 +892,13 @@ def main():
             format=args.export,
         )
         sys.exit()
+
     mybook.read_book(
         voice_samples=args.xtts,
         engine=args.engine,
         openai=args.openai,
         model_name=args.model,
-        speaker=args.speaker,
+        speaker=speaker,
         bitrate=args.bitrate,
     )
     if args.cover is not None:
