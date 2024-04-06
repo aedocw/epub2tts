@@ -118,6 +118,8 @@ Typical inference times for xtts_v2 averaged over 4 processing chunks (about 4 s
 
 ## 📦 Install
 
+Required Python version is 3.11.
+
 <details>
 <summary>MAC INSTALLATION</summary>
 
