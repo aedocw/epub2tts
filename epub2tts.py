@@ -49,6 +49,7 @@ class EpubToAudiobook:
         no_deepspeed,
         skip_cleanup,
         audioformat,
+        parapause,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -60,6 +61,7 @@ class EpubToAudiobook:
         self.sayparts = sayparts
         self.engine = engine
         self.minratio = minratio
+        self.parapause = parapause
         self.debug = debug
         self.output_filename = self.bookname + ".m4b"
         self.chapters = []
@@ -163,11 +165,19 @@ class EpubToAudiobook:
         for a in soup.findAll("a", href=True):
             if not any(char.isalpha() for char in a.text):
                 a.extract()
-        text = soup.find_all(string=True)
-        for t in text:
-            if t.parent.name not in blacklist:
-                output += "{} ".format(t)
-        return output
+        #Include %P% between paragraphs if parapause is true
+        if self.parapause:
+            paragraphs = soup.find_all("p")
+            for p in paragraphs:
+                paragraph_text = "".join(p.strings)
+                output += f"{paragraph_text.strip()} %P%"
+            return output.strip("%P%")
+        else:
+            text = soup.find_all(string=True)
+            for t in text:
+                if t.parent.name not in blacklist:
+                    output += "{} ".format(t)
+            return output
 
     def prep_text(self, text_in):
         # Replace some chars with comma to improve TTS by introducing a pause
@@ -408,6 +418,15 @@ class EpubToAudiobook:
 
         text = '\n'.join(lines)   # Join the lines back
         return metadata, text
+    
+    def prepend_silence(self, tempwav):
+        audio = AudioSegment.from_file(tempwav)
+        # Create a one-second silence segment
+        one_sec_silence = AudioSegment.silent(duration=1200)
+        # Prepend the silence segment to the audio
+        combined = one_sec_silence + audio
+        # Export the combined audio to a new file
+        combined.export(tempwav, format="wav")
 
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
@@ -553,7 +572,10 @@ class EpubToAudiobook:
                                         )
                                     if self.section_speakers[i] != None:
                                         speaker = self.section_speakers[i]
-                                    asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
+                                    sentence = sentence_groups[x].replace("%P%", "")
+                                    asyncio.run(self.edgespeak(sentence, speaker, tempwav))
+                                    if sentence_groups[x].startswith("%P%"):
+                                        self.prepend_silence(tempwav)
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
@@ -615,7 +637,7 @@ class EpubToAudiobook:
                 audio_modified = AudioSegment.empty()
                 # Split audio into chunks where detected silence is longer than one second
                 chunks = split_on_silence(
-                    concatenated, min_silence_len=1000, silence_thresh=-50
+                    concatenated, min_silence_len=1200, silence_thresh=-50
                 )
                 # Iterate through each chunk
                 for chunkindex, chunk in enumerate(tqdm(chunks)):
@@ -841,6 +863,11 @@ def main():
         type=str,
         help="jpg image to use for cover",
     )
+    parser.add_argument(
+        "--parapause",
+        action="store_true",
+        help="Include marker between paragraphs for pause, edge engine only",
+    )
 
     args = parser.parse_args()
     print(args)
@@ -864,6 +891,7 @@ def main():
         no_deepspeed=args.no_deepspeed,
         skip_cleanup=args.skip_cleanup,
         audioformat=args.audioformat,
+        parapause=args.parapause,
     )
 
     print(f"Language selected: {mybook.language}")
