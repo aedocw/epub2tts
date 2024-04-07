@@ -254,8 +254,8 @@ class EpubToAudiobook:
                 else:
                     self.section_speakers.append(speaker)
                     self.section_names.append(line.lstrip("# ").strip())
-                print(f"Section speakers: {self.section_speakers}")
-                print(f"Section names: {self.section_names}")
+                print(f"Section speakers: {self.section_speakers}") if self.debug else None
+                print(f"Section names: {self.section_names}") if self.debug else None
             sections = re.split(r"\n(?=#\s)", text)
             sections = [section.strip() for section in sections if section.strip()]
             for i, section in enumerate(sections):
