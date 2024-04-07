@@ -1,0 +1,18 @@
+Author: Christopher Aedo
+Title: Speaker test
+
+# One
+
+This is the first chapter and should have the default speaker.
+
+# Two % en-US-EmmaNeural
+
+This should be read by Emma. It is the second chapter.
+
+# Three
+
+This is the third chapter and should also be read by emma.
+
+# Four % en-US-RogerNeural
+
+Now we have reached the final chapter, and have changed voices to Roger.

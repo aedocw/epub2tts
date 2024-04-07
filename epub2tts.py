@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import os
 import pkg_resources
 import re
@@ -10,7 +11,9 @@ import warnings
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
+import edge_tts
 from fuzzywuzzy import fuzz
+from mutagen import mp4
 import noisereduce
 from openai import OpenAI
 from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
@@ -44,6 +47,8 @@ class EpubToAudiobook:
         skipfootnotes,
         sayparts,
         no_deepspeed,
+        skip_cleanup,
+        audioformat,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -60,7 +65,12 @@ class EpubToAudiobook:
         self.chapters = []
         self.chapters_to_read = []
         self.section_names = []
+        self.section_speakers = []
         self.no_deepspeed = no_deepspeed
+        self.skip_cleanup = skip_cleanup
+        self.title = self.bookname
+        self.author = "Unknown"
+        self.audioformat = [i.lower() for i in audioformat.split(",")]
         if source.endswith(".epub"):
             self.book = epub.read_epub(source)
             self.sourcetype = "epub"
@@ -102,23 +112,24 @@ class EpubToAudiobook:
             pass
         return package_installed
 
-    def generate_metadata(self, files, title, author):
+    def generate_metadata(self, files):
         chap = 1
         start_time = 0
         with open(self.ffmetadatafile, "w") as file:
             file.write(";FFMETADATA1\n")
-            file.write("ARTIST=" + str(author) + "\n")
-            file.write("ALBUM=" + str(title) + "\n")
+            file.write(f"ARTIST={self.author}\n")
+            file.write(f"ALBUM={self.title}\n")
+            file.write("DESCRIPTION=Made with https://github.com/aedocw/epub2tts\n")
             for file_name in files:
                 duration = self.get_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
-                file.write("START=" + str(start_time) + "\n")
-                file.write("END=" + str(start_time + duration) + "\n")
+                file.write(f"START={start_time}\n")
+                file.write(f"END={start_time + duration}\n")
                 if len(self.section_names) > 0:
                     file.write(f"title={self.section_names[chap-1]}\n")
                 else:
-                    file.write("title=Part " + str(chap) + "\n")
+                    file.write(f"title=Part {chap}\n")
                 chap += 1
                 start_time += duration
 
@@ -181,6 +192,7 @@ class EpubToAudiobook:
             .replace("&", " and ")
             .replace(" GNU ", " new ")
             .replace("\n", " \n")
+            .replace("*", " ")
             .strip()
         )
         return text
@@ -189,13 +201,18 @@ class EpubToAudiobook:
         pattern = r'\s*\d+\.\s.*$'  # Matches lines starting with numbers followed by a dot and whitespace
         return re.sub(pattern, '', text, flags=re.MULTILINE)
 
-    def get_chapters_epub(self):
+    def get_chapters_epub(self, speaker):
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 self.chapters.append(item.get_content())
+        self.author = self.book.get_metadata("DC", "creator")[0][0]
+        self.title = self.book.get_metadata("DC", "title")[0][0]
 
         for i in range(len(self.chapters)):
-            text = self.prep_text(self.chap2text(self.chapters[i]))
+            if self.skip_cleanup:
+                text = self.chap2text(self.chapters[i])
+            else:
+                text = self.prep_text(self.chap2text(self.chapters[i]))
             if len(text) < 150:
                 # too short to bother with
                 continue
@@ -209,26 +226,50 @@ class EpubToAudiobook:
                 continue
             print(text[:256])
             self.chapters_to_read.append(text)
+            self.section_speakers.append(speaker)
         print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
             self.end = len(self.chapters_to_read)
 
-    def get_chapters_text(self):
+    def get_chapters_text(self, speaker):
         with open(self.source, "r") as file:
             text = file.read()
-        text = self.prep_text(text)
+        metadata, text = self.extract_title_author(text)
+        if metadata.get("Title") != None:
+            self.title = metadata.get("Title")
+        if metadata.get("Author") != None:
+            self.author = metadata.get("Author")
+        if self.skip_cleanup:
+            pass
+        else:
+            text = self.prep_text(text)
         max_len = 50000
         lines_with_hashtag = [line for line in text.splitlines() if line.startswith("# ")]
         if lines_with_hashtag:
             for line in lines_with_hashtag:
-                self.section_names.append(line.lstrip("# ").strip())
-            sections = re.split(r"#\s+", text.strip())[1:]
-            for section in sections:
-                if self.sayparts == False:
-                    lines = section.splitlines()
-                    section = "\n".join(lines[1:])
+                if '%' in line: # Was a new speaker specified?
+                    parts = line.split('%')
+                    if speaker != parts[1].strip():
+                        speaker = parts[1].strip()
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(parts[0].lstrip("# ").strip())
+                else:
+                    self.section_speakers.append(speaker)
+                    self.section_names.append(line.lstrip("# ").strip())
+                print(f"Section speakers: {self.section_speakers}")
+                print(f"Section names: {self.section_names}")
+            sections = re.split(r"\n(?=#\s)", text)
+            sections = [section.strip() for section in sections if section.strip()]
+            for i, section in enumerate(sections):
+                lines = section.splitlines()
+                section = "\n".join(lines[1:])
                 self.chapters_to_read.append(section.strip())
+                print(f"Part: {len(self.chapters_to_read)}")
+                print(f"{self.section_names[i]}")
+                print(f"Speaker: {self.section_speakers[i]}")
+                print(str(self.chapters_to_read[-1])[:256])
         else:
+            self.section_speakers.append(speaker)
             while len(text) > max_len:
                 pos = text.rfind(" ", 0, max_len)  # find the last space within the limit
                 self.chapters_to_read.append(text[:pos])
@@ -236,7 +277,9 @@ class EpubToAudiobook:
                 print(str(self.chapters_to_read[-1])[:256])
                 text = text[pos + 1 :]  # +1 to avoid starting the next chapter with a space
             self.chapters_to_read.append(text)
-        self.end = len(self.chapters_to_read)
+        if self.end == 999:
+            self.end = len(self.chapters_to_read)
+        print(f"Section names: {self.section_names}") if self.debug else None
 
     def read_chunk_xtts(self, sentences, wav_file_path):
         # takes list of sentences to read, reads through them and saves to file
@@ -245,7 +288,11 @@ class EpubToAudiobook:
         sentence_list = sent_tokenize(sentences)
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
-            print(sentence) if self.debug else None
+            if self.debug:
+                print(
+                    sentence
+                )
+                with open("debugout.txt", "a") as file: file.write(f"{sentence}\n")
             chunks = self.model.inference_stream(
                 sentence,
                 self.language,
@@ -268,8 +315,8 @@ class EpubToAudiobook:
                     chunk.to(device=self.device)
                 )  # Move chunk to available device
             # Add a short pause between sentences (e.g., X.XX seconds of silence)
-            if i < len(sentence_list) - 1:
-                silence_duration = int(24000 * 1.0)
+            if i < len(sentence_list):
+                silence_duration = int(24000 * .6)
                 silence = torch.zeros(
                     (silence_duration,), dtype=torch.float32, device=self.device
                 )  # Move silence tensor to available device
@@ -304,14 +351,8 @@ class EpubToAudiobook:
         return ratio
 
     def combine_sentences(self, sentences, length=1000):
-        combined = ""
         for sentence in sentences:
-            if len(combined) + len(sentence) <= length:
-                combined += sentence + " "
-            else:
-                yield combined
-                combined = sentence
-        yield combined
+            yield sentence
 
     def export(self, format):
         allowed_formats = ["txt"]
@@ -323,6 +364,8 @@ class EpubToAudiobook:
         self.check_for_file(outputfile)
         print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
         with open(outputfile, "w") as file:
+            file.write(f"Title: {self.title}\n")
+            file.write(f"Author: {self.author}\n\n")
             for partnum, i in enumerate(range(self.start, self.end)):
                 file.write(f"\n# Part {partnum + 1}\n\n")
                 file.write(self.chapters_to_read[i] + "\n")
@@ -337,6 +380,37 @@ class EpubToAudiobook:
             else:
                 os.remove(filename)
 
+    def add_cover(self, cover_img):
+        if os.path.isfile(cover_img):
+            m4b = mp4.MP4(self.output_filename)
+            cover_image = open(cover_img, "rb").read()
+            m4b["covr"] = [mp4.MP4Cover(cover_image)]
+            m4b.save()
+        else:
+            print(f"Cover image {cover_img} not found")
+
+    async def edgespeak(self, sentence, speaker, filename):
+        communicate = edge_tts.Communicate(sentence, speaker)
+        await communicate.save(filename)
+
+    def extract_title_author(self, text):
+        lines = text.split('\n')
+        metadata = {}
+
+        # A copy of the list for iteration
+        lines_copy = lines[:]
+
+        for line in lines_copy[:2]:  # We check only the first two lines
+            if line.startswith('Title: '):
+                metadata['Title'] = line.replace('Title: ', '').strip()
+                lines.remove(line)  # Remove line from the original list
+            elif line.startswith('Author: '):
+                metadata['Author'] = line.replace('Author: ', '').strip()
+                lines.remove(line)  # Remove line from the original list
+
+        text = '\n'.join(lines)   # Join the lines back
+        return metadata, text
+
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
         self.openai = openai
@@ -350,14 +424,6 @@ class EpubToAudiobook:
                 )
             else:
                 voice_name = "-" + speaker.replace(" ", "-").lower()
-        elif engine == "openai":
-            if speaker == None:
-                speaker = "onyx"
-            voice_name = "-" + speaker
-        elif engine == "tts":
-            if speaker == None:
-                speaker = "p335"
-            voice_name = "-" + speaker
         else:
             voice_name = "-" + speaker
         self.output_filename = re.sub(".m4b", voice_name + ".m4b", self.output_filename)
@@ -425,6 +491,8 @@ class EpubToAudiobook:
                     print("Continuing...")
                     break
             client = OpenAI(api_key=self.openai)
+        elif engine == "edge":
+            print("Engine is Edge TTS")
         else:
             print(f"Engine is TTS, model is {model_name}")
             self.tts = TTS(model_name).to(self.device)
@@ -441,6 +509,8 @@ class EpubToAudiobook:
                 tempfiles = []
                 if self.sayparts and len(self.section_names) == 0:
                     chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
+                elif self.sayparts and len(self.section_names) > 0:
+                    chapter = self.section_names[i].strip() + ".\n" + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
                 sentences = sent_tokenize(chapter)
@@ -452,6 +522,7 @@ class EpubToAudiobook:
                 else:
                     length = 1000
                 sentence_groups = list(self.combine_sentences(sentences, length))
+
                 for x in tqdm(range(len(sentence_groups))):
                     #skip if item is empty
                     if len(sentence_groups[x]) == 0:
@@ -479,22 +550,37 @@ class EpubToAudiobook:
                                         input=sentence_groups[x],
                                     )
                                     response.stream_to_file(tempwav)
+                                elif engine == "edge":
+                                    self.minratio = 0
+                                    if self.debug:
+                                        print(
+                                            sentence_groups[x]
+                                        )
+                                    if self.section_speakers[i] != None:
+                                        speaker = self.section_speakers[i]
+                                    asyncio.run(self.edgespeak(sentence_groups[x], speaker, tempwav))
                                 elif engine == "tts":
                                     if model_name == "tts_models/en/vctk/vits":
                                         self.minratio = 0
                                         # assume we're using a multi-speaker model
-                                        print(
-                                            sentence_groups[x]
-                                        ) if self.debug else None
+                                        if self.debug:
+                                            print(
+                                                sentence_groups[x]
+                                            )
+                                            with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
+                                        if self.section_speakers[i] != None:
+                                            speaker = self.section_speakers[i]
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x],
                                             speaker=speaker,
                                             file_path=tempwav,
                                         )
                                     else:
-                                        print(
-                                            sentence_groups[x]
-                                        ) if self.debug else None
+                                        if self.debug:
+                                            print(
+                                                sentence_groups[x]
+                                            )
+                                            with open("debugout.txt", "a") as file: file.write(f"{sentence_groups[x]}\n")
                                         self.tts.tts_to_file(
                                             text=sentence_groups[x], file_path=tempwav
                                         )
@@ -517,13 +603,10 @@ class EpubToAudiobook:
                             print(
                                 f"Something is wrong with the audio ({ratio}): {tempwav}"
                             )
-                            # sys.exit()
-                        if engine == "openai":
+                        if engine == "openai" or engine == "edge":
                             temp = AudioSegment.from_mp3(tempwav)
                         else:
                             temp = AudioSegment.from_wav(tempwav)
-                        #temp.export(tempflac, format="flac")
-                        #os.remove(tempwav)
                     tempfiles.append(tempwav)
                 tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
@@ -543,9 +626,8 @@ class EpubToAudiobook:
                 for chunkindex, chunk in enumerate(tqdm(chunks)):
                     audio_modified += chunk
                     audio_modified += one_sec_silence
-                # add extra 2sec silence at the end of each part/chapter if it's an epub
-                if self.sourcetype == "epub":
-                    audio_modified += two_sec_silence
+                # add extra 2sec silence at the end of each part/chapter
+                audio_modified += two_sec_silence
                 # Write modified audio to the final audio segment
                 audio_modified.export(outputwav, format="wav")
                 for f in tempfiles:
@@ -568,48 +650,73 @@ class EpubToAudiobook:
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
             for filename in files:
+                filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
-        ffmpeg_command = [
-            "ffmpeg",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            filelist,
-            "-codec:a",
-            "aac",
-            "-b:a",
-            bitrate,
-            "-f",
-            "ipod",
-            outputm4a,
-        ]
-        subprocess.run(ffmpeg_command)
-        if self.sourcetype == "epub":
-            author = self.book.get_metadata("DC", "creator")[0][0]
-            title = self.book.get_metadata("DC", "title")[0][0]
-        else:
-            author = "Unknown"
-            title = self.bookname
-        self.generate_metadata(files, title, author)
-        ffmpeg_command = [
-            "ffmpeg",
-            "-i",
-            outputm4a,
-            "-i",
-            self.ffmetadatafile,
-            "-map_metadata",
-            "1",
-            "-codec",
-            "copy",
-            self.output_filename,
-        ]
-        subprocess.run(ffmpeg_command)
+
+        for i in self.audioformat:
+            if i == "wav":
+                outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
+                self.output_filename = self.output_filename.replace(".m4b", ".wav")
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    outputm4a,
+                ]
+            elif i == "flac":
+                outputm4a = outputm4a.replace(".m4a", "_without_metadata.flac")
+                self.output_filename = self.output_filename.replace(".m4b", ".flac")
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    outputm4a,
+                ]
+            elif i == "m4b":
+                ffmpeg_command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    filelist,
+                    "-codec:a",
+                    "aac",
+                    "-b:a",
+                    bitrate,
+                    "-f",
+                    "ipod",
+                    outputm4a,
+                ]
+            subprocess.run(ffmpeg_command)
+            self.generate_metadata(files)
+            ffmpeg_command = [
+                "ffmpeg",
+                "-i",
+                outputm4a,
+                "-i",
+                self.ffmetadatafile,
+                "-map_metadata",
+                "1",
+                "-codec",
+                "copy",
+                self.output_filename,
+            ]
+            subprocess.run(ffmpeg_command)
+            if not self.debug: # Leave the files if debugging
+                os.remove(outputm4a)
         if not self.debug: # Leave the files if debugging
             os.remove(filelist)
             os.remove(self.ffmetadatafile)
-            os.remove(outputm4a)
             for f in files:
                 os.remove(f)
         print(self.output_filename + " complete")
@@ -628,7 +735,7 @@ def main():
         default="tts",
         nargs="?",
         const="tts",
-        help="Which TTS to use [tts|xtts|openai]",
+        help="Which TTS to use [tts|xtts|openai|edge]",
     )
     parser.add_argument(
         "--xtts",
@@ -702,6 +809,12 @@ def main():
         help="Say each part number at start of section"
     )
     parser.add_argument(
+        "--audioformat", 
+        type=str,
+        default="m4b",
+        help="One or multiple audio format separate by comma for the output file (m4b [default], wav, flac)"
+    )
+    parser.add_argument(
         "--bitrate",
         type=str,
         nargs="?",
@@ -724,6 +837,16 @@ def main():
         action="store_true",
         help="Disable deepspeed",
     )
+    parser.add_argument(
+        "--skip-cleanup",
+        action="store_true",
+        help="Skip text cleanup",
+    )
+    parser.add_argument(
+        "--cover",
+        type=str,
+        help="jpg image to use for cover",
+    )
 
     args = parser.parse_args()
     print(args)
@@ -745,14 +868,29 @@ def main():
         skipfootnotes=args.skipfootnotes,
         sayparts=args.sayparts,
         no_deepspeed=args.no_deepspeed,
+        skip_cleanup=args.skip_cleanup,
+        audioformat=args.audioformat,
     )
 
-    print("Language selected: " + mybook.language)
+    print(f"Language selected: {mybook.language}")
+    if args.engine == "openai" and args.speaker == None:
+        speaker = "onyx"
+    elif args.engine == "edge" and args.speaker == None:
+        speaker = "en-US-AndrewNeural"
+    elif args.engine == "tts" and args.speaker == None:
+        speaker = "p335"
+    else:
+        speaker = args.speaker
+    print(f"in main, Speaker is {speaker}")
 
     if mybook.sourcetype == "epub":
-        mybook.get_chapters_epub()
+        mybook.get_chapters_epub(
+            speaker=speaker,
+        )
     else:
-        mybook.get_chapters_text()
+        mybook.get_chapters_text(
+            speaker=speaker,
+        )
     if args.scan:
         sys.exit()
     if args.export is not None:
@@ -760,14 +898,17 @@ def main():
             format=args.export,
         )
         sys.exit()
+
     mybook.read_book(
         voice_samples=args.xtts,
         engine=args.engine,
         openai=args.openai,
         model_name=args.model,
-        speaker=args.speaker,
+        speaker=speaker,
         bitrate=args.bitrate,
     )
+    if args.cover is not None:
+        mybook.add_cover(args.cover)
 
 
 if __name__ == "__main__":

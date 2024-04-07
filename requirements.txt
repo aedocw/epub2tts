@@ -1,7 +1,9 @@
 beautifulsoup4
 deepspeed
 ebooklib
+edge-tts
 fuzzywuzzy
+mutagen
 newspaper3k
 nltk
 noisereduce
