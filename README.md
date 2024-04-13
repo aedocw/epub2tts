@@ -12,6 +12,8 @@
 - [x] Resumes where it left off if interrupted
 - [x] NOTE: epub file must be DRM-free
 
+**NOTE:** Check out [epub2tts-edge](https://github.com/aedocw/epub2tts-edge/) for a VERY fast lightweight alternative that only works with MS Edge. That version reads multiple sentences in parallel and goes much quicker!
+
 
 ## 📖 Usage
 <details>
@@ -61,6 +63,7 @@ Uses [Microsoft Edge TTS](https://github.com/rany2/edge-tts/) in the cloud, FREE
 * --bitrate [BITRATE] - Specify bitrate for output file
 * --debug  - Enable debug output
 * --export txt - Export epub contents to file (txt, md coming soon)
+* --parapause - when using `--export txt`, this option inserts `%P%` at each paragraph break. Then when creating audio with `--engine edge`, any time `%P%` is found in the copy a 1.2 second pause in inserted. 
 * --no-deepspeed - Disable deepspeed
 * --cover image.jpg - jpg image to use for cover
 
