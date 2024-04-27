@@ -353,11 +353,10 @@ class EpubToAudiobook:
             yield sentence
 
     def export(self, format):
-        allowed_formats = ["txt"]
-        #this should probably be a try/except, fix later
+      allowed_formats = ["txt"]
+      try:
         if format not in allowed_formats:
-            print(f"{format} not allowed export format")
-            sys.exit()
+            raise ValueError(f"{format} not allowed export format")
         outputfile = f"{self.bookname}.{format}"
         self.check_for_file(outputfile)
         print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
@@ -367,7 +366,10 @@ class EpubToAudiobook:
             for partnum, i in enumerate(range(self.start, self.end)):
                 file.write(f"\n# Part {partnum + 1}\n\n")
                 file.write(self.chapters_to_read[i] + "\n")
-
+      except ValueError as e:
+        print(e)
+        sys.exit()
+          
     def check_for_file(self, filename):
         if os.path.isfile(filename):
             print(f"The file '{filename}' already exists.")
