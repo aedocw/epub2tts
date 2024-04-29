@@ -26,7 +26,6 @@ from TTS.api import TTS
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from TTS.utils.generic_utils import get_user_data_dir
-from werkzeug.utils import secure_filename
 import ebooklib
 import edge_tts
 import nltk
@@ -369,8 +368,7 @@ class EpubToAudiobook:
       try:
         if format not in allowed_formats:
             raise ValueError(f"{format} not allowed export format")
-        file_name = secure_filename(self.bookname)
-        file_path = os.path.abspath(file_name + ".epub")
+        file_path = os.path.abspath(self.source)
         cover_image = self.get_epub_cover(file_path)
         image_path = None
         if cover_image is not None:
@@ -417,11 +415,6 @@ class EpubToAudiobook:
 
                 return z.open(cover_path)          
         except FileNotFoundError:
-            # This doesn't recognise the full path of the file.
-            # i.e., /home/e/code/epub2tts/lightningthief.epub
-            #                            ^
-            #                                  v
-            # instead of, /home/e/code/epub2tts/books/lightningthief.epub
             print(f"Could not get cover image of {epub_path}")
 
     def check_for_file(self, filename):
