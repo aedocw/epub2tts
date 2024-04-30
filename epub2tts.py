@@ -7,30 +7,41 @@ import subprocess
 import sys
 import time
 import warnings
+import zipfile
 
 from bs4 import BeautifulSoup
-import ebooklib
 from ebooklib import epub
-import edge_tts
 from fuzzywuzzy import fuzz
+from lxml import etree
 from mutagen import mp4
-import noisereduce
+from nltk.tokenize import sent_tokenize
 from openai import OpenAI
 from pedalboard import Pedalboard, Compressor, Gain, NoiseGate, LowShelfFilter
 from pedalboard.io import AudioFile
+from PIL import Image
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-import nltk
-from nltk.tokenize import sent_tokenize
-import torch, gc
-import torchaudio
+from tqdm import tqdm
 from TTS.api import TTS
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from TTS.utils.generic_utils import get_user_data_dir
-from tqdm import tqdm
+import ebooklib
+import edge_tts
+import nltk
+import noisereduce
+import torch, gc
+import torchaudio
 import whisper
 
+namespaces = {
+   "calibre":"http://calibre.kovidgoyal.net/2009/metadata",
+   "dc":"http://purl.org/dc/elements/1.1/",
+   "dcterms":"http://purl.org/dc/terms/",
+   "opf":"http://www.idpf.org/2007/opf",
+   "u":"urn:oasis:names:tc:opendocument:xmlns:container",
+   "xsi":"http://www.w3.org/2001/XMLSchema-instance",
+}
 
 class EpubToAudiobook:
     def __init__(
@@ -357,6 +368,15 @@ class EpubToAudiobook:
       try:
         if format not in allowed_formats:
             raise ValueError(f"{format} not allowed export format")
+        file_path = os.path.abspath(self.source)
+        cover_image = self.get_epub_cover(file_path)
+        image_path = None
+        if cover_image is not None:
+            image = Image.open(cover_image)
+            image_filename = self.bookname + ".png"
+            image_path = os.path.join(image_filename)
+            image.save(image_path)
+            print(f"Cover image saved to {image_path}")
         outputfile = f"{self.bookname}.{format}"
         self.check_for_file(outputfile)
         print(f"Exporting parts {self.start + 1} to {self.end} to {outputfile}")
@@ -369,7 +389,34 @@ class EpubToAudiobook:
       except ValueError as e:
         print(e)
         sys.exit()
-          
+
+    def get_epub_cover(self, epub_path):
+        try:
+            with zipfile.ZipFile(epub_path) as z:
+                t = etree.fromstring(z.read("META-INF/container.xml"))
+                rootfile_path =  t.xpath("/u:container/u:rootfiles/u:rootfile",
+                                                    namespaces=namespaces)[0].get("full-path")
+                
+                t = etree.fromstring(z.read(rootfile_path))
+                cover_meta = t.xpath("//opf:metadata/opf:meta[@name='cover']",
+                                            namespaces=namespaces)
+                if not cover_meta:
+                    print("No cover image found.")
+                    return None
+                cover_id = cover_meta[0].get("content")
+                
+                cover_item = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']",
+                                                namespaces=namespaces)
+                if not cover_item:
+                    print("No cover image found.")
+                    return None
+                cover_href = cover_item[0].get("href")
+                cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
+
+                return z.open(cover_path)          
+        except FileNotFoundError:
+            print(f"Could not get cover image of {epub_path}")
+
     def check_for_file(self, filename):
         if os.path.isfile(filename):
             print(f"The file '{filename}' already exists.")
