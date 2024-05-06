@@ -3,6 +3,7 @@ deepspeed
 ebooklib
 edge-tts
 fuzzywuzzy
+lxml
 mutagen
 newspaper3k
 nltk
@@ -10,12 +11,13 @@ noisereduce
 openai
 openai-whisper
 pedalboard
+pillow
 pydub
 pysbd
 python-Levenshtein
 requests
 torch
 torchaudio
-TTS
 tqdm
+TTS
 unidecode
