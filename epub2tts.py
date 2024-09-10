@@ -140,7 +140,7 @@ class EpubToAudiobook:
                 file.write(f"START={start_time}\n")
                 file.write(f"END={start_time + duration}\n")
                 if len(self.section_names) > 0:
-                    file.write(f"title={self.section_names[chap-1]}\n")
+                    file.write(f"title={self.section_names[self.start+chap-1]}\n")
                 else:
                     file.write(f"title=Part {chap}\n")
                 chap += 1
@@ -238,7 +238,7 @@ class EpubToAudiobook:
                     print(chapter_id, chapter_desc)
                     if chapter_file not in chaper_file_index:
                         chaper_file_index[chapter_file] =  BeautifulSoup(self.book.get_item_with_href("Content/"+chapter_file).get_content(), "html.parser")
-                    self.chapters.append(self.chap2text(chaper_file_index[chapter_file], chapter_id))
+                    self.chapters.append((self.chap2text(chaper_file_index[chapter_file], chapter_id), chapter_desc))
                     #print(self.chapters)
 
         #if there was no ncx file we asume the one file per chaper style of epub
@@ -251,10 +251,11 @@ class EpubToAudiobook:
                     self.chapters.append(item.get_content())
 
         for i in range(len(self.chapters)):
+            header = None
             if one_chapter_per_file:
                 text = self.chap2text(self.chapters[i])
             else:
-                text = self.chapters[i]
+                text, header = self.chapters[i]
 
             if not self.skip_cleanup:
                 text = self.prep_text(text)
@@ -272,6 +273,8 @@ class EpubToAudiobook:
                 continue
             print(text[:256])
             self.chapters_to_read.append(text)
+            if header is not None:
+                self.section_names.append(header)
             self.section_speakers.append(speaker)
         print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
