@@ -229,13 +229,15 @@ class EpubToAudiobook:
         for item in self.book.get_items():
             if type(item) == ebooklib.epub.EpubNcx:
                 root = etree.fromstring(item.get_content())
-                nav_points = root.findall('.//{*}navPoint')
+                navMap = root.find('.//{*}navMap')
+                #We only make chapters from the first level in the nav map
+                nav_points = navMap.findall('{*}navPoint')
 
                 for nav_point in nav_points:
                     chapter_location = nav_point.find('.//{*}content').get("src")
                     chapter_desc = nav_point.find('.//{*}text').text
                     chapter_file, chapter_id = chapter_location.split("#")
-                    print(chapter_id, chapter_desc)
+                    print(len(self.chapters)+1, chapter_id, chapter_desc)
                     if chapter_file not in chaper_file_index:
                         chaper_file_index[chapter_file] =  BeautifulSoup(self.book.get_item_with_href("Content/"+chapter_file).get_content(), "html.parser")
                     self.chapters.append((self.chap2text(chaper_file_index[chapter_file], chapter_id), chapter_desc))
