@@ -237,7 +237,7 @@ class EpubToAudiobook:
                     chapter_location = nav_point.find('.//{*}content').get("src")
                     chapter_desc = nav_point.find('.//{*}text').text
                     chapter_file, chapter_id = chapter_location.split("#")
-                    print(len(self.chapters)+1, chapter_id, chapter_desc)
+                    print(len(self.chapters)-1, chapter_id, chapter_desc)
                     if chapter_file not in chaper_file_index:
                         chaper_file_index[chapter_file] =  BeautifulSoup(self.book.get_item_with_href("Content/"+chapter_file).get_content(), "html.parser")
                     self.chapters.append((self.chap2text(chaper_file_index[chapter_file], chapter_id), chapter_desc))
