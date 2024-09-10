@@ -157,7 +157,7 @@ class EpubToAudiobook:
             total_chars += len(chapters_to_read[i])
         return total_chars
 
-    def chap2text(self, chap):
+    def chap2text(self, chap, element_id = None):
         blacklist = [
             "[document]",
             "noscript",
@@ -169,7 +169,12 @@ class EpubToAudiobook:
             "script",
         ]
         output = ""
-        soup = BeautifulSoup(chap, "html.parser")
+        if type(chap) == BeautifulSoup:
+            soup = chap
+        else:
+            soup = BeautifulSoup(chap, "html.parser")
+        if element_id is not None:
+            soup = soup.find(id=element_id).parent
         if self.skiplinks:
             # Remove everything that is an href
             for a in soup.findAll("a", href=True):
@@ -215,17 +220,45 @@ class EpubToAudiobook:
         return re.sub(pattern, '', text, flags=re.MULTILINE)
 
     def get_chapters_epub(self, speaker):
-        for item in self.book.get_items():
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                self.chapters.append(item.get_content())
+
         self.author = self.book.get_metadata("DC", "creator")[0][0]
         self.title = self.book.get_metadata("DC", "title")[0][0]
 
+        one_chapter_per_file = False
+        chaper_file_index = {}
+        for item in self.book.get_items():
+            if type(item) == ebooklib.epub.EpubNcx:
+                root = etree.fromstring(item.get_content())
+                nav_points = root.findall('.//{*}navPoint')
+
+                for nav_point in nav_points:
+                    chapter_location = nav_point.find('.//{*}content').get("src")
+                    chapter_desc = nav_point.find('.//{*}text').text
+                    chapter_file, chapter_id = chapter_location.split("#")
+                    print(chapter_id, chapter_desc)
+                    if chapter_file not in chaper_file_index:
+                        chaper_file_index[chapter_file] =  BeautifulSoup(self.book.get_item_with_href("Content/"+chapter_file).get_content(), "html.parser")
+                    self.chapters.append(self.chap2text(chaper_file_index[chapter_file], chapter_id))
+                    #print(self.chapters)
+
+        #if there was no ncx file we asume the one file per chaper style of epub
+        if len(chaper_file_index) == 0:
+            one_chapter_per_file = True
+
+        if one_chapter_per_file:
+            for item in self.book.get_items():
+                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    self.chapters.append(item.get_content())
+
         for i in range(len(self.chapters)):
-            if self.skip_cleanup:
+            if one_chapter_per_file:
                 text = self.chap2text(self.chapters[i])
             else:
-                text = self.prep_text(self.chap2text(self.chapters[i]))
+                text = self.chapters[i]
+
+            if not self.skip_cleanup:
+                text = self.prep_text(text)
+
             if len(text) < 150:
                 # too short to bother with
                 continue
@@ -400,7 +433,7 @@ class EpubToAudiobook:
                 t = etree.fromstring(z.read("META-INF/container.xml"))
                 rootfile_path =  t.xpath("/u:container/u:rootfiles/u:rootfile",
                                                     namespaces=namespaces)[0].get("full-path")
-                
+
                 t = etree.fromstring(z.read(rootfile_path))
                 cover_meta = t.xpath("//opf:metadata/opf:meta[@name='cover']",
                                             namespaces=namespaces)
@@ -408,7 +441,7 @@ class EpubToAudiobook:
                     print("No cover image found.")
                     return None
                 cover_id = cover_meta[0].get("content")
-                
+
                 cover_item = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']",
                                                 namespaces=namespaces)
                 if not cover_item:
@@ -417,7 +450,7 @@ class EpubToAudiobook:
                 cover_href = cover_item[0].get("href")
                 cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
 
-                return z.open(cover_path)          
+                return z.open(cover_path)
         except FileNotFoundError:
             print(f"Could not get cover image of {epub_path}")
 
@@ -841,22 +874,22 @@ def main():
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
     parser.add_argument(
-        "--skiplinks", 
-        action="store_true", 
+        "--skiplinks",
+        action="store_true",
         help="Skip reading any HTML links"
     )
     parser.add_argument(
-        "--skipfootnotes", 
-        action="store_true", 
+        "--skipfootnotes",
+        action="store_true",
         help="Try to skip reading footnotes"
     )
     parser.add_argument(
-        "--sayparts", 
-        action="store_true", 
+        "--sayparts",
+        action="store_true",
         help="Say each part number at start of section"
     )
     parser.add_argument(
-        "--audioformat", 
+        "--audioformat",
         type=str,
         default="m4b",
         help="One or multiple audio format separate by comma for the output file (m4b [default], wav, flac)"
