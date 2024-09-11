@@ -168,6 +168,13 @@ class EpubToAudiobook:
             "input",
             "script",
         ]
+        skip_epub_types = [
+           "pagebreak", #contains the page number we dont need to read the alloud
+           "annotation", #Contains stuff like table descriptions (ie a text saying: "this table has 3 columns and 4 rows")
+           #"sidebar", # contains the side bar if there is one (We keep it but it  might not be desirable)
+           #"chapter", # we definetly want to keep the chapters
+           "index", #this will be an audiobook we dont need the index (especially since we dont include the page numbers)
+        ]
         output = ""
         if type(chap) == BeautifulSoup:
             soup = chap
@@ -189,13 +196,14 @@ class EpubToAudiobook:
         for t in text:
             if end_element_id is not None and t.parent.get('id') == end_element_id:
                 break
-            elm_epub_type = t.parent.get('epub:type')
-            if elm_epub_type is not None and elm_epub_type == 'pagebreak': #Dont read the page numbers
-                children_2_skip = t.parent.find_all(True)
-                continue
 
             #skip if element is child of a previously skiped element
             if children_2_skip is not None and t.parent in children_2_skip:
+                continue
+           
+            elm_epub_type = t.parent.get('epub:type')
+            if elm_epub_type is not None and elm_epub_type in skip_epub_types: #Dont read the page numbers or annotations
+                children_2_skip = t.parent.find_all(True)
                 continue
 
             if t.parent.name not in blacklist:
