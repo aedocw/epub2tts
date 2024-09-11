@@ -185,12 +185,12 @@ class EpubToAudiobook:
                 a.extract()
         text = soup.find_all(string=True)
         for t in text:
+            if end_element_id is not None and t.parent.get('id') == end_element_id:
+                break
             if t.parent.name not in blacklist:
                 txt = "{}".format(t).strip()
                 if txt != "":
                     output += txt+" "
-            if end_element_id is not None and t.parent.get('id') == end_element_id:
-                break
         return output
 
     def prep_text(self, text_in):
