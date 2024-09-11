@@ -128,7 +128,7 @@ class EpubToAudiobook:
     def generate_metadata(self, files):
         chap = 1
         start_time = 0
-        with open(self.ffmetadatafile, "w") as file:
+        with open(self.ffmetadatafile, "w", encoding='utf8') as file:
             file.write(";FFMETADATA1\n")
             file.write(f"ARTIST={self.author}\n")
             file.write(f"ALBUM={self.title}\n")
@@ -184,13 +184,23 @@ class EpubToAudiobook:
             if not any(char.isalpha() for char in a.text):
                 a.extract()
         text = soup.find_all(string=True)
+        last_paragraph = None
         for t in text:
             if end_element_id is not None and t.parent.get('id') == end_element_id:
                 break
+            elm_epub_type = t.parent.get('epub:type')
+            if elm_epub_type is not None and elm_epub_type == 'pagebreak': #Dont read the page numbers
+                continue
             if t.parent.name not in blacklist:
                 txt = "{}".format(t).strip()
                 if txt != "":
                     output += txt+" "
+
+            if t.parent.name == 'p':#insert enters where there are new paragraphs
+                if last_paragraph is not None and last_paragraph == t.parent:
+                    output += "\n"
+                last_paragraph = t.parent
+
         return output
 
     def prep_text(self, text_in):
