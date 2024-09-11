@@ -550,8 +550,6 @@ class EpubToAudiobook:
                         chaper_file_index[part['chapter_file']] =  BeautifulSoup(self.book.get_item_with_href("Content/"+part['chapter_file']).get_content(), "html.parser")
                     chapter_text = self.chap2text(chaper_file_index[part['chapter_file']], part['chapter_id'], part['chapter_end_id'])
                     self.chapters.append((chapter_text, part['chapter_desc']))
-                    if i > 5:#for quiq debug (REMOVE)
-                        break
 
         #if there was no ncx file we asume the one file per chaper style of epub
         if len(chaper_file_index) == 0:
