@@ -49,9 +49,11 @@ async def edgespeak(sentence, speaker, filename):
     communicate = edge_tts.Communicate(sentence, speaker)
     await communicate.save(filename)
 
-whispermodel = whisper.load_model("tiny")
+whispermodel = None
 
 def compare(text, wavfile, debug):
+    if whispermodel is None:
+        whispermodel = whisper.load_model("tiny")
     result = whispermodel.transcribe(wavfile)
     text = re.sub(" +", " ", text).lower().strip()
     ratio = fuzz.ratio(text, result["text"].lower())
