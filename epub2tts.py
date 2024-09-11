@@ -45,7 +45,7 @@ namespaces = {
 }
 
 
-async def edgespeak(self, sentence, speaker, filename):
+async def edgespeak(sentence, speaker, filename):
     communicate = edge_tts.Communicate(sentence, speaker)
     await communicate.save(filename)
 
