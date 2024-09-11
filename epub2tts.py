@@ -52,6 +52,7 @@ async def edgespeak(sentence, speaker, filename):
 whispermodel = None
 
 def compare(text, wavfile, debug):
+    global whispermodel
     if whispermodel is None:
         whispermodel = whisper.load_model("tiny")
     result = whispermodel.transcribe(wavfile)
