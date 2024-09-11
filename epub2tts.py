@@ -197,7 +197,7 @@ class EpubToAudiobook:
                     output += txt+" "
 
             if t.parent.name in ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'div', 'li', 'ul', 'tr'):#insert enters where there are new linebreaking elements
-                if last_paragraph is not None and last_paragraph != t.parent:
+                if last_paragraph is not None and last_paragraph != t.parent and len(output) > 0 and output[-1] != "\n":
                     output += "\n"
                 last_paragraph = t.parent
 
