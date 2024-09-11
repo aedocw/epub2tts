@@ -157,7 +157,7 @@ class EpubToAudiobook:
             total_chars += len(chapters_to_read[i])
         return total_chars
 
-    def chap2text(self, chap, element_id = None):
+    def chap2text(self, chap, element_id = None, end_element_id = None):
         blacklist = [
             "[document]",
             "noscript",
@@ -186,7 +186,11 @@ class EpubToAudiobook:
         text = soup.find_all(string=True)
         for t in text:
             if t.parent.name not in blacklist:
-                output += "{} ".format(t)
+                txt = "{}".format(t).strip()
+                if txt != "":
+                    output += txt+" "
+            if end_element_id is not None and t.parent.get('id') == end_element_id:
+                break
         return output
 
     def prep_text(self, text_in):
@@ -230,18 +234,25 @@ class EpubToAudiobook:
             if type(item) == ebooklib.epub.EpubNcx:
                 root = etree.fromstring(item.get_content())
                 navMap = root.find('.//{*}navMap')
-                #We only make chapters from the first level in the nav map
-                nav_points = navMap.findall('{*}navPoint')
+                nav_points = navMap.findall('.//{*}navPoint')
 
+                #extract part description and start and end positions
+                part_list = []
                 for nav_point in nav_points:
                     chapter_location = nav_point.find('.//{*}content').get("src")
                     chapter_desc = nav_point.find('.//{*}text').text
                     chapter_file, chapter_id = chapter_location.split("#")
-                    print(len(self.chapters)-1, chapter_id, chapter_desc)
-                    if chapter_file not in chaper_file_index:
-                        chaper_file_index[chapter_file] =  BeautifulSoup(self.book.get_item_with_href("Content/"+chapter_file).get_content(), "html.parser")
-                    self.chapters.append((self.chap2text(chaper_file_index[chapter_file], chapter_id), chapter_desc))
-                    #print(self.chapters)
+                    if len(part_list) != 0 and part_list[len(part_list)-1]['chapter_file'] == chapter_file:
+                        part_list[len(part_list)-1]['chapter_end_id'] = chapter_id
+                    part_list.append({'chapter_desc': chapter_desc, 'chapter_file': chapter_file, 'chapter_id': chapter_id, 'chapter_end_id': None})
+
+
+                #extract part text from start to end
+                for i, part in enumerate(part_list):
+                    if part['chapter_file'] not in chaper_file_index:
+                        chaper_file_index[part['chapter_file']] =  BeautifulSoup(self.book.get_item_with_href("Content/"+part['chapter_file']).get_content(), "html.parser")
+                    chapter_text = self.chap2text(chaper_file_index[part['chapter_file']], part['chapter_id'], part['chapter_end_id'])
+                    self.chapters.append((chapter_text, part['chapter_desc']))
 
         #if there was no ncx file we asume the one file per chaper style of epub
         if len(chaper_file_index) == 0:
@@ -250,14 +261,10 @@ class EpubToAudiobook:
         if one_chapter_per_file:
             for item in self.book.get_items():
                 if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                    self.chapters.append(item.get_content())
+                    self.chapters.append((self.chap2text(item.get_content()), None))
 
         for i in range(len(self.chapters)):
-            header = None
-            if one_chapter_per_file:
-                text = self.chap2text(self.chapters[i])
-            else:
-                text, header = self.chapters[i]
+            text, header = self.chapters[i]
 
             if not self.skip_cleanup:
                 text = self.prep_text(text)
@@ -265,15 +272,17 @@ class EpubToAudiobook:
             if len(text) < 150:
                 # too short to bother with
                 continue
+            if header is not None:
+                print(f"Part: {header}")
+            print(f"Part No: {len(self.chapters_to_read) + 1}")
             print(f"Length: {len(text)}")
-            print(f"Part: {len(self.chapters_to_read) + 1}")
             if self.skipfootnotes:
                 text = self.exclude_footnotes(text)
                 #This drops everything after "Skip Notes" in a chapter
                 text = text.split("Skip Notes")[0].strip()
             if self.skipfootnotes and text.startswith("Footnotes"):
                 continue
-            print(text[:256])
+            print(text[:256]+"\n")
             self.chapters_to_read.append(text)
             if header is not None:
                 self.section_names.append(header)
