@@ -185,12 +185,19 @@ class EpubToAudiobook:
                 a.extract()
         text = soup.find_all(string=True)
         last_paragraph = None
+        children_2_skip = None
         for t in text:
             if end_element_id is not None and t.parent.get('id') == end_element_id:
                 break
             elm_epub_type = t.parent.get('epub:type')
             if elm_epub_type is not None and elm_epub_type == 'pagebreak': #Dont read the page numbers
+                children_2_skip = t.parent.find_all(True)
                 continue
+
+            #skip if element is child of a previously skiped element
+            if children_2_skip is not None and t.parent in children_2_skip:
+                continue
+
             if t.parent.name not in blacklist:
                 txt = "{}".format(t).strip()
                 if txt != "":
