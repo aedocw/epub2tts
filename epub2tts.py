@@ -197,7 +197,7 @@ class EpubToAudiobook:
                     output += txt+" "
 
             if t.parent.name == 'p':#insert enters where there are new paragraphs
-                if last_paragraph is not None and last_paragraph == t.parent:
+                if last_paragraph is not None and last_paragraph != t.parent:
                     output += "\n"
                 last_paragraph = t.parent
 
