@@ -8,6 +8,7 @@ import sys
 import time
 import warnings
 import zipfile
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -200,7 +201,7 @@ class EpubToAudiobook:
             #skip if element is child of a previously skiped element
             if children_2_skip is not None and t.parent in children_2_skip:
                 continue
-           
+
             elm_epub_type = t.parent.get('epub:type')
             if elm_epub_type is not None and elm_epub_type in skip_epub_types: #Dont read the page numbers or annotations
                 children_2_skip = t.parent.find_all(True)
@@ -257,6 +258,11 @@ class EpubToAudiobook:
         chaper_file_index = {}
         for item in self.book.get_items():
             if type(item) == ebooklib.epub.EpubNcx:
+                relative_file_dir =  str(Path(item.get_name()).parent)
+                if relative_file_dir == '.':
+                    relative_file_dir = ''
+                else:
+                    relative_file_dir += '/'
                 root = etree.fromstring(item.get_content())
                 navMap = root.find('.//{*}navMap')
                 nav_points = navMap.findall('.//{*}navPoint')
@@ -271,6 +277,8 @@ class EpubToAudiobook:
                        chapter_file, chapter_id = chapter_src
                     else:
                        chapter_file, chapter_id = chapter_location, None
+
+                    chapter_file = relative_file_dir+chapter_file
                     if len(part_list) != 0 and part_list[len(part_list)-1]['chapter_file'] == chapter_file:
                         part_list[len(part_list)-1]['chapter_end_id'] = chapter_id
                     part_list.append({'chapter_desc': chapter_desc, 'chapter_file': chapter_file, 'chapter_id': chapter_id, 'chapter_end_id': None})
@@ -279,7 +287,7 @@ class EpubToAudiobook:
                 #extract part text from start to end
                 for i, part in enumerate(part_list):
                     if part['chapter_file'] not in chaper_file_index:
-                        chaper_file_index[part['chapter_file']] =  BeautifulSoup(self.book.get_item_with_href("Content/"+part['chapter_file']).get_content(), "html.parser")
+                        chaper_file_index[part['chapter_file']] =  BeautifulSoup(self.book.get_item_with_href(part['chapter_file']).get_content(), "html.parser")
                     chapter_text = self.chap2text(chaper_file_index[part['chapter_file']], part['chapter_id'], part['chapter_end_id'])
                     self.chapters.append((chapter_text, part['chapter_desc']))
 
