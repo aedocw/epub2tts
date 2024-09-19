@@ -266,7 +266,11 @@ class EpubToAudiobook:
                 for nav_point in nav_points:
                     chapter_location = nav_point.find('.//{*}content').get("src")
                     chapter_desc = nav_point.find('.//{*}text').text
-                    chapter_file, chapter_id = chapter_location.split("#")
+                    chapter_src = chapter_location.split("#")
+                    if len(chapter_src) > 1:
+                       chapter_file, chapter_id = chapter_src
+                    else:
+                       chapter_file, chapter_id = chapter_location, None
                     if len(part_list) != 0 and part_list[len(part_list)-1]['chapter_file'] == chapter_file:
                         part_list[len(part_list)-1]['chapter_end_id'] = chapter_id
                     part_list.append({'chapter_desc': chapter_desc, 'chapter_file': chapter_file, 'chapter_id': chapter_id, 'chapter_end_id': None})
