@@ -8,6 +8,7 @@ import sys
 import time
 import warnings
 import zipfile
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -128,7 +129,7 @@ class EpubToAudiobook:
     def generate_metadata(self, files):
         chap = 1
         start_time = 0
-        with open(self.ffmetadatafile, "w") as file:
+        with open(self.ffmetadatafile, "w", encoding='utf8') as file:
             file.write(";FFMETADATA1\n")
             file.write(f"ARTIST={self.author}\n")
             file.write(f"ALBUM={self.title}\n")
@@ -140,7 +141,7 @@ class EpubToAudiobook:
                 file.write(f"START={start_time}\n")
                 file.write(f"END={start_time + duration}\n")
                 if len(self.section_names) > 0:
-                    file.write(f"title={self.section_names[chap-1]}\n")
+                    file.write(f"title={self.section_names[self.start+chap-1]}\n")
                 else:
                     file.write(f"title=Part {chap}\n")
                 chap += 1
@@ -157,7 +158,7 @@ class EpubToAudiobook:
             total_chars += len(chapters_to_read[i])
         return total_chars
 
-    def chap2text(self, chap):
+    def chap2text(self, chap, element_id = None, end_element_id = None):
         blacklist = [
             "[document]",
             "noscript",
@@ -168,8 +169,20 @@ class EpubToAudiobook:
             "input",
             "script",
         ]
+        skip_epub_types = [
+           "pagebreak", #contains the page number we dont need to read the alloud
+           "annotation", #Contains stuff like table descriptions (ie a text saying: "this table has 3 columns and 4 rows")
+           #"sidebar", # contains the side bar if there is one (We keep it but it  might not be desirable)
+           #"chapter", # we definetly want to keep the chapters
+           "index", #this will be an audiobook we dont need the index (especially since we dont include the page numbers)
+        ]
         output = ""
-        soup = BeautifulSoup(chap, "html.parser")
+        if type(chap) == BeautifulSoup:
+            soup = chap
+        else:
+            soup = BeautifulSoup(chap, "html.parser")
+        if element_id is not None:
+            soup = soup.find(id=element_id).parent
         if self.skiplinks:
             # Remove everything that is an href
             for a in soup.findAll("a", href=True):
@@ -179,9 +192,31 @@ class EpubToAudiobook:
             if not any(char.isalpha() for char in a.text):
                 a.extract()
         text = soup.find_all(string=True)
+        last_paragraph = None
+        children_2_skip = None
         for t in text:
+            if end_element_id is not None and t.parent.get('id') == end_element_id:
+                break
+
+            #skip if element is child of a previously skiped element
+            if children_2_skip is not None and t.parent in children_2_skip:
+                continue
+
+            elm_epub_type = t.parent.get('epub:type')
+            if elm_epub_type is not None and elm_epub_type in skip_epub_types: #Dont read the page numbers or annotations
+                children_2_skip = t.parent.find_all(True)
+                continue
+
             if t.parent.name not in blacklist:
-                output += "{} ".format(t)
+                txt = "{}".format(t).strip()
+                if txt != "":
+                    output += txt+" "
+
+            if t.parent.name in ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'div', 'li', 'ul', 'tr'):#insert enters where there are new linebreaking elements
+                if last_paragraph is not None and last_paragraph != t.parent and len(output) > 0 and output[-1] != "\n":
+                    output += "\n"
+                last_paragraph = t.parent
+
         return output
 
     def prep_text(self, text_in):
@@ -215,30 +250,79 @@ class EpubToAudiobook:
         return re.sub(pattern, '', text, flags=re.MULTILINE)
 
     def get_chapters_epub(self, speaker):
-        for item in self.book.get_items():
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                self.chapters.append(item.get_content())
+
         self.author = self.book.get_metadata("DC", "creator")[0][0]
         self.title = self.book.get_metadata("DC", "title")[0][0]
 
+        one_chapter_per_file = False
+        chaper_file_index = {}
+        for item in self.book.get_items():
+            if type(item) == ebooklib.epub.EpubNcx:
+                relative_file_dir =  str(Path(item.get_name()).parent)
+                if relative_file_dir == '.':
+                    relative_file_dir = ''
+                else:
+                    relative_file_dir += '/'
+                root = etree.fromstring(item.get_content())
+                navMap = root.find('.//{*}navMap')
+                nav_points = navMap.findall('.//{*}navPoint')
+
+                #extract part description and start and end positions
+                part_list = []
+                for nav_point in nav_points:
+                    chapter_location = nav_point.find('.//{*}content').get("src")
+                    chapter_desc = nav_point.find('.//{*}text').text
+                    chapter_src = chapter_location.split("#")
+                    if len(chapter_src) > 1:
+                       chapter_file, chapter_id = chapter_src
+                    else:
+                       chapter_file, chapter_id = chapter_location, None
+
+                    chapter_file = relative_file_dir+chapter_file
+                    if len(part_list) != 0 and part_list[len(part_list)-1]['chapter_file'] == chapter_file:
+                        part_list[len(part_list)-1]['chapter_end_id'] = chapter_id
+                    part_list.append({'chapter_desc': chapter_desc, 'chapter_file': chapter_file, 'chapter_id': chapter_id, 'chapter_end_id': None})
+
+
+                #extract part text from start to end
+                for i, part in enumerate(part_list):
+                    if part['chapter_file'] not in chaper_file_index:
+                        chaper_file_index[part['chapter_file']] =  BeautifulSoup(self.book.get_item_with_href(part['chapter_file']).get_content(), "html.parser")
+                    chapter_text = self.chap2text(chaper_file_index[part['chapter_file']], part['chapter_id'], part['chapter_end_id'])
+                    self.chapters.append((chapter_text, part['chapter_desc']))
+
+        #if there was no ncx file we asume the one file per chaper style of epub
+        if len(chaper_file_index) == 0:
+            one_chapter_per_file = True
+
+        if one_chapter_per_file:
+            for item in self.book.get_items():
+                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    self.chapters.append((self.chap2text(item.get_content()), None))
+
         for i in range(len(self.chapters)):
-            if self.skip_cleanup:
-                text = self.chap2text(self.chapters[i])
-            else:
-                text = self.prep_text(self.chap2text(self.chapters[i]))
+            text, header = self.chapters[i]
+
+            if not self.skip_cleanup:
+                text = self.prep_text(text)
+
             if len(text) < 150:
                 # too short to bother with
                 continue
+            if header is not None:
+                print(f"Part: {header}")
+            print(f"Part No: {len(self.chapters_to_read) + 1}")
             print(f"Length: {len(text)}")
-            print(f"Part: {len(self.chapters_to_read) + 1}")
             if self.skipfootnotes:
                 text = self.exclude_footnotes(text)
                 #This drops everything after "Skip Notes" in a chapter
                 text = text.split("Skip Notes")[0].strip()
             if self.skipfootnotes and text.startswith("Footnotes"):
                 continue
-            print(text[:256])
+            print(text[:256]+"\n")
             self.chapters_to_read.append(text)
+            if header is not None:
+                self.section_names.append(header)
             self.section_speakers.append(speaker)
         print(f"Number of chapters to read: {len(self.chapters_to_read)}")
         if self.end == 999:
@@ -400,7 +484,7 @@ class EpubToAudiobook:
                 t = etree.fromstring(z.read("META-INF/container.xml"))
                 rootfile_path =  t.xpath("/u:container/u:rootfiles/u:rootfile",
                                                     namespaces=namespaces)[0].get("full-path")
-                
+
                 t = etree.fromstring(z.read(rootfile_path))
                 cover_meta = t.xpath("//opf:metadata/opf:meta[@name='cover']",
                                             namespaces=namespaces)
@@ -408,7 +492,7 @@ class EpubToAudiobook:
                     print("No cover image found.")
                     return None
                 cover_id = cover_meta[0].get("content")
-                
+
                 cover_item = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']",
                                                 namespaces=namespaces)
                 if not cover_item:
@@ -417,7 +501,7 @@ class EpubToAudiobook:
                 cover_href = cover_item[0].get("href")
                 cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
 
-                return z.open(cover_path)          
+                return z.open(cover_path)
         except FileNotFoundError:
             print(f"Could not get cover image of {epub_path}")
 
@@ -841,22 +925,22 @@ def main():
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
     parser.add_argument(
-        "--skiplinks", 
-        action="store_true", 
+        "--skiplinks",
+        action="store_true",
         help="Skip reading any HTML links"
     )
     parser.add_argument(
-        "--skipfootnotes", 
-        action="store_true", 
+        "--skipfootnotes",
+        action="store_true",
         help="Try to skip reading footnotes"
     )
     parser.add_argument(
-        "--sayparts", 
-        action="store_true", 
+        "--sayparts",
+        action="store_true",
         help="Say each part number at start of section"
     )
     parser.add_argument(
-        "--audioformat", 
+        "--audioformat",
         type=str,
         default="m4b",
         help="One or multiple audio format separate by comma for the output file (m4b [default], wav, flac)"
