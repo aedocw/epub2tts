@@ -319,7 +319,7 @@ class EpubToAudiobook:
             for j, chunk in enumerate(chunks):
                 if i == 0:
                     print(
-                        f"Time to first chunck: {time.time() - t0}"
+                        f"Time to first chunk: {time.time() - t0}"
                     ) if self.debug else None
                 print(
                     f"Received chunk {i} of audio length {chunk.shape[-1]}"
