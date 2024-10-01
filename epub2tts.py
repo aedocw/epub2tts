@@ -76,6 +76,28 @@ class EdgeTTS(Text2WaveFile):
       communicate = edge_tts.Communicate(text, self.config['speaker'])
       await communicate.save(wave_file_name)
 
+class OpenAI_TTS(Text2WaveFile):
+   def __init__(self, config = {}):
+      if 'api_key' not in config:
+         raise Exception('no api_key given')
+      if 'speaker' not in config:
+         raise Exception('no speeker configured')
+      self.config = config
+      self.client = OpenAI(api_key=config['api_key'])
+
+   def proccess_text(self, text, wave_file_name):
+      
+      self.client.audio.speech.create(
+         model="tts-1",
+         voice=self.config['speaker'].lower(),
+         input=text,
+      )
+      response.stream_to_file(wave_file_name)
+      
+      if os.path.exists(wave_file_name):
+         return True
+      return False
+
 
 class EpubToAudiobook:
     def __init__(
