@@ -44,6 +44,39 @@ namespaces = {
    "xsi":"http://www.w3.org/2001/XMLSchema-instance",
 }
 
+class Text2WaveFile:
+   def __init__(self, config = {}):
+      """
+      initalizes a Text 2 Wave File class
+      This might mean loading the ML model used for speech syntesis or setting up other stuff 
+      """
+      self.config = config
+
+   def proccess_text(self, text, wave_file_name):
+      """
+      takes a pice of text and generates audio from it then saves that audio in wave_file_name
+      returns True if successfull
+      """
+
+class EdgeTTS(Text2WaveFile):
+   def __init__(self, config = {}):
+      if 'speaker' not in config:
+         raise Exception('no speeker configured')
+      self.config = config
+
+   def proccess_text(self, text, wave_file_name):
+      
+      asyncio.run(self.edgespeak(text, wave_file_name))
+      
+      if os.path.exists(wave_file_name):
+         return True
+      return False
+
+   async def edgespeak(self, text, wave_file_name):
+      communicate = edge_tts.Communicate(text, self.config['speaker'])
+      await communicate.save(wave_file_name)
+
+
 class EpubToAudiobook:
     def __init__(
         self,
