@@ -48,10 +48,10 @@ class Text2WaveFile:
     def __init__(self, config = {}):
         """
         initalizes a Text 2 Wave File class
-        This might mean loading the ML model used for speech syntesis or setting up other stuff 
+        This might mean loading the ML model used for speech syntesis or setting up other stuff
         """
         self.config = config
-        
+
     def proccess_text(self, text, wave_file_name):
         """
         takes a pice of text and generates audio from it then saves that audio in wave_file_name
@@ -63,11 +63,11 @@ class EdgeTTS(Text2WaveFile):
         if 'speaker' not in config:
             raise Exception('no speeker configured')
         self.config = config
-    
+
     def proccess_text(self, text, wave_file_name):
-        
+
         asyncio.run(self.edgespeak(text, wave_file_name))
-      
+
         if os.path.exists(wave_file_name):
             return True
         return False
@@ -92,7 +92,7 @@ class OpenAI_TTS(Text2WaveFile):
             input=text,
         )
         response.stream_to_file(wave_file_name)
-        
+
         if os.path.exists(wave_file_name):
             return True
         return False
@@ -105,7 +105,7 @@ class XTTS(Text2WaveFile):
         if 'language' not in config:
             raise Exception('no language configured')
         self.language = self.config.language
-        
+
         self.config = config
         if (
             torch.cuda.is_available()
@@ -149,7 +149,7 @@ class XTTS(Text2WaveFile):
             self.gpt_cond_latent,
             self.speaker_embedding,
             ) = self.model.speaker_manager.speakers[self.config['speaker']].values()
-    
+
     def is_installed(self, package_name):
         package_installed = False
         try:
@@ -223,12 +223,12 @@ class XTTS(Text2WaveFile):
         with AudioFile(wav_file_path, "w", 24000, result.shape[0]) as f:
             f.write(result)
 
-class TTS(Text2WaveFile):
+class org_TTS(Text2WaveFile):
     def __init__(self, config = {}):
-        if 'speaker' not in config:
-            raise Exception('no speeker configured')
         if 'model_name' not in config:
-            raise Exception('no speeker configured')
+            raise Exception('no model_name configured')
+        if 'device' not in config:
+            raise Exception('no device configured')
 
         if 'debug' not in config:
             self.debug = False
@@ -238,6 +238,7 @@ class TTS(Text2WaveFile):
         self.config = config
 
         self.model_name = self.config['model_name']
+        self.device = self.config['device']
         self.tts = TTS(self.config['model_name']).to(self.device)
 
 
@@ -252,7 +253,7 @@ class TTS(Text2WaveFile):
                 with open("debugout.txt", "a") as file: file.write(f"{text}\n")
             self.tts.tts_to_file(
                 text=text,
-                speaker=speaker,
+                speaker=self.config['speaker'],
                 file_path=wave_file_name,
             )
         else:
@@ -338,7 +339,7 @@ class EpubToAudiobook:
         except LookupError:
             nltk.download("punkt_tab")
 
-    
+
     def generate_metadata(self, files):
         chap = 1
         start_time = 0
@@ -591,7 +592,7 @@ class EpubToAudiobook:
             self.end = len(self.chapters_to_read)
         print(f"Section names: {self.section_names}") if self.debug else None
 
-    
+
 
     def compare(self, text, wavfile):
         result = self.whispermodel.transcribe(wavfile)
@@ -747,6 +748,37 @@ class EpubToAudiobook:
                     chapter = self.section_names[i].strip() + ".\n" + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
+
+                if self.section_speakers[i] != None:
+                    speaker = self.section_speakers[i]
+
+                engine_cl = None
+                config = {
+                    'speaker': speaker,
+                    'language': self.language,
+                    'model_name': model_name,
+                    'device': self.device
+                }
+
+                if engine == "xtts":
+                    engine_cl = XTTS(config)
+
+                elif engine == "openai":
+                    config['api_key'] = self.openai
+                    engine_cl = OpenAI_TTS(config)
+                    self.minratio = 0
+
+                elif engine == "edge":
+                    engine_cl = EdgeTTS(config)
+                    self.minratio = 0
+
+                elif engine == "tts":
+                    engine_cl = org_TTS(config)
+
+                    if config['model_name'] == "tts_models/en/vctk/vits":
+                        self.minratio = 0
+
+
                 sentences = sent_tokenize(chapter)
                 #Drop any items that do NOT have at least one letter or number
                 sentences = [s for s in sentences if any(c.isalnum() for c in s)]
@@ -767,21 +799,14 @@ class EpubToAudiobook:
                     retries = 2
                     tempwav = "temp" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
+
                     if os.path.isfile(tempwav):
                         print(tempwav + " exists, skipping to next chunk")
                     else:
                         while retries > 0:
                             try:
-                                if self.section_speakers[i] != None:
-                                    speaker = self.section_speakers[i]
-                                if engine == "xtts":
-                                    
-                                elif engine == "openai":
+                                engine_cl.proccess_text(sentence_groups[x], tempwav)
 
-                                elif engine == "edge":
-                                    
-                                elif engine == "tts":
-                                    
                                 if self.minratio == 0:
                                     print("Skipping whisper transcript comparison") if self.debug else None
                                     ratio = self.minratio
