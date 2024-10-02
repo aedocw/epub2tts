@@ -45,58 +45,102 @@ namespaces = {
 }
 
 class Text2WaveFile:
-   def __init__(self, config = {}):
-      """
-      initalizes a Text 2 Wave File class
-      This might mean loading the ML model used for speech syntesis or setting up other stuff 
-      """
-      self.config = config
-
-   def proccess_text(self, text, wave_file_name):
-      """
-      takes a pice of text and generates audio from it then saves that audio in wave_file_name
-      returns True if successfull
-      """
+    def __init__(self, config = {}):
+        """
+        initalizes a Text 2 Wave File class
+        This might mean loading the ML model used for speech syntesis or setting up other stuff 
+        """
+        self.config = config
+        
+    def proccess_text(self, text, wave_file_name):
+        """
+        takes a pice of text and generates audio from it then saves that audio in wave_file_name
+        returns True if successfull
+        """
 
 class EdgeTTS(Text2WaveFile):
-   def __init__(self, config = {}):
-      if 'speaker' not in config:
-         raise Exception('no speeker configured')
-      self.config = config
-
-   def proccess_text(self, text, wave_file_name):
+    def __init__(self, config = {}):
+        if 'speaker' not in config:
+            raise Exception('no speeker configured')
+        self.config = config
+    
+    def proccess_text(self, text, wave_file_name):
+        
+        asyncio.run(self.edgespeak(text, wave_file_name))
       
-      asyncio.run(self.edgespeak(text, wave_file_name))
-      
-      if os.path.exists(wave_file_name):
-         return True
-      return False
+        if os.path.exists(wave_file_name):
+            return True
+        return False
 
-   async def edgespeak(self, text, wave_file_name):
-      communicate = edge_tts.Communicate(text, self.config['speaker'])
-      await communicate.save(wave_file_name)
+    async def edgespeak(self, text, wave_file_name):
+        communicate = edge_tts.Communicate(text, self.config['speaker'])
+        await communicate.save(wave_file_name)
 
 class OpenAI_TTS(Text2WaveFile):
-   def __init__(self, config = {}):
-      if 'api_key' not in config:
-         raise Exception('no api_key given')
-      if 'speaker' not in config:
-         raise Exception('no speeker configured')
-      self.config = config
-      self.client = OpenAI(api_key=config['api_key'])
+    def __init__(self, config = {}):
+        if 'api_key' not in config:
+            raise Exception('no api_key given')
+            if 'speaker' not in config:
+                raise Exception('no speeker configured')
+            self.config = config
+            self.client = OpenAI(api_key=config['api_key'])
 
-   def proccess_text(self, text, wave_file_name):
-      
-      self.client.audio.speech.create(
-         model="tts-1",
-         voice=self.config['speaker'].lower(),
-         input=text,
-      )
-      response.stream_to_file(wave_file_name)
-      
-      if os.path.exists(wave_file_name):
-         return True
-      return False
+    def proccess_text(self, text, wave_file_name):
+        self.client.audio.speech.create(
+            model="tts-1",
+            voice=self.config['speaker'].lower(),
+            input=text,
+        )
+        response.stream_to_file(wave_file_name)
+        
+        if os.path.exists(wave_file_name):
+            return True
+        return False
+
+class XTTS(Text2WaveFile):
+    def __init__(self, config = {}):
+        if (
+            torch.cuda.is_available()
+            and torch.cuda.get_device_properties(0).total_memory > 3500000000
+        ):
+            print("Using GPU")
+            print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
+            self.device = "cuda"
+        else:
+            print("Not enough VRAM on GPU or CUDA not found. Using CPU")
+            self.device = "cpu"
+
+        print("Loading model: " + self.xtts_model)
+        # This will trigger model load even though we might not use tts object later
+        tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(self.device)
+        tts = ""
+        config = XttsConfig()
+        model_json = self.xtts_model + "/config.json"
+        config.load_json(model_json)
+        self.model = Xtts.init_from_config(config)
+        if self.no_deepspeed:
+            use_deepspeed = False
+        else:
+            use_deepspeed = self.is_installed("deepspeed")
+        self.model.load_checkpoint(
+            config, checkpoint_dir=self.xtts_model, use_deepspeed=use_deepspeed
+        )
+
+        if self.device == "cuda":
+            print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
+            self.model.cuda()
+
+        print("Computing speaker latents...")
+        if speaker == None:
+            (
+            self.gpt_cond_latent,
+            self.speaker_embedding,
+            ) = self.model.get_conditioning_latents(audio_path=self.voice_samples)
+        else: #using Coqui speaker
+            (
+            self.gpt_cond_latent,
+            self.speaker_embedding,
+            ) = self.model.speaker_manager.speakers[speaker].values()
 
 
 class EpubToAudiobook:
