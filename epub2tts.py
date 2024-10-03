@@ -1,6 +1,9 @@
 import argparse
+import re
 import asyncio
 import os
+import copy
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
 import pkg_resources
 import re
 import subprocess
@@ -80,10 +83,10 @@ class OpenAI_TTS(Text2WaveFile):
     def __init__(self, config = {}):
         if 'api_key' not in config:
             raise Exception('no api_key given')
-            if 'speaker' not in config:
-                raise Exception('no speeker configured')
-            self.config = config
-            self.client = OpenAI(api_key=config['api_key'])
+        if 'speaker' not in config:
+            raise Exception('no speeker configured')
+        self.config = config
+        self.client = OpenAI(api_key=config['api_key'])
 
     def proccess_text(self, text, wave_file_name):
         self.client.audio.speech.create(
@@ -104,9 +107,19 @@ class XTTS(Text2WaveFile):
 
         if 'language' not in config:
             raise Exception('no language configured')
-        self.language = self.config.language
+
+        if 'xtts_model' not in config:
+            raise Exception('no xtts_model configured')
+
+        if 'debug' not in config:
+            self.debug = False
+        else:
+            self.debug = config['debug']
 
         self.config = config
+        self.language = self.config['language']
+        self.xtts_model = self.config['xtts_model']
+
         if (
             torch.cuda.is_available()
             and torch.cuda.get_device_properties(0).total_memory > 3500000000
@@ -114,6 +127,10 @@ class XTTS(Text2WaveFile):
             print("Using GPU")
             print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
             self.device = "cuda"
+        elif torch.backends.mps.is_available():
+            print("Using GPU")
+            self.device = "mps"
+            self.config['no_deepspeed'] = True
         else:
             print("Not enough VRAM on GPU or CUDA not found. Using CPU")
             self.device = "cpu"
@@ -126,7 +143,7 @@ class XTTS(Text2WaveFile):
         model_json = self.xtts_model + "/config.json"
         config.load_json(model_json)
         self.model = Xtts.init_from_config(config)
-        if self.no_deepspeed:
+        if self.config['no_deepspeed']:
             use_deepspeed = False
         else:
             use_deepspeed = self.is_installed("deepspeed")
@@ -172,9 +189,7 @@ class XTTS(Text2WaveFile):
         for i, sentence in enumerate(sentence_list):
             # Run TTS for each sentence
             if self.debug:
-                print(
-                    sentence
-                )
+                print(sentence)
                 with open("debugout.txt", "a") as file: file.write(f"{sentence}\n")
             chunks = self.model.inference_stream(
                 sentence,
@@ -188,12 +203,8 @@ class XTTS(Text2WaveFile):
             )
             for j, chunk in enumerate(chunks):
                 if i == 0:
-                    print(
-                        f"Time to first chunk: {time.time() - t0}"
-                    ) if self.debug else None
-                print(
-                    f"Received chunk {i} of audio length {chunk.shape[-1]}"
-                ) if self.debug else None
+                    print(f"Time to first chunk: {time.time() - t0}") if self.debug else None
+                print(f"Received chunk {i} of audio length {chunk.shape[-1]}") if self.debug else None
                 wav_chunks.append(
                     chunk.to(device=self.device)
                 )  # Move chunk to available device
@@ -247,9 +258,7 @@ class org_TTS(Text2WaveFile):
             self.minratio = 0
             # assume we're using a multi-speaker model
             if self.debug:
-                print(
-                    text
-                )
+                print(text)
                 with open("debugout.txt", "a") as file: file.write(f"{text}\n")
             self.tts.tts_to_file(
                 text=text,
@@ -258,9 +267,7 @@ class org_TTS(Text2WaveFile):
             )
         else:
             if self.debug:
-                print(
-                    sentence_groups[x]
-                )
+                print(text)
                 with open("debugout.txt", "a") as file: file.write(f"{text}\n")
             self.tts.tts_to_file(
                 text=text, file_path=wave_file_name
@@ -324,6 +331,8 @@ class EpubToAudiobook:
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
             self.device = "cuda"
+        elif torch.backends.mps.is_available():
+             self.device = "mps"
         else:
             self.device = "cpu"
         # Make sure we've got nltk punkt
@@ -397,6 +406,9 @@ class EpubToAudiobook:
             soup = BeautifulSoup(chap, "html.parser")
         if element_id is not None:
             soup = soup.find(id=element_id).parent
+
+        #We copy the html tree before modifining it
+        soup = copy.deepcopy(soup)
         if self.skiplinks:
             # Remove everything that is an href
             for a in soup.findAll("a", href=True):
@@ -405,32 +417,32 @@ class EpubToAudiobook:
         for a in soup.findAll("a", href=True):
             if not any(char.isalpha() for char in a.text):
                 a.extract()
-        text = soup.find_all(string=True)
-        last_paragraph = None
-        children_2_skip = None
-        for t in text:
-            if end_element_id is not None and t.parent.get('id') == end_element_id:
-                break
 
-            #skip if element is child of a previously skiped element
-            if children_2_skip is not None and t.parent in children_2_skip:
-                continue
-
-            elm_epub_type = t.parent.get('epub:type')
+        for elm in soup.findAll("[epub:type]"):
+            elm_epub_type = elm.get('epub:type')
             if elm_epub_type is not None and elm_epub_type in skip_epub_types: #Dont read the page numbers or annotations
-                children_2_skip = t.parent.find_all(True)
-                continue
+                elm.extract()
 
-            if t.parent.name not in blacklist:
-                txt = "{}".format(t).strip()
-                if txt != "":
-                    output += txt+" "
 
-            if t.parent.name in ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'div', 'li', 'ul', 'tr'):#insert enters where there are new linebreaking elements
-                if last_paragraph is not None and last_paragraph != t.parent and len(output) > 0 and output[-1] != "\n":
-                    output += "\n"
-                last_paragraph = t.parent
+        #remove all elements after the end element(if we have a end element)
+        remove = False
+        for elm in soup.find_all(True):
+            if not remove and end_element_id is not None and elm.get('id') == end_element_id:
+                remove = True
+            if remove:
+                elm.extract()
 
+        #TODO: render the HTML using a real HTML renderer
+        #append enters after newline elements
+        for elm in soup.find_all(True):
+            if elm.name in ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'li', 'ol', 'ul', 'table', 'th', 'tr', 'br', 'pre', 'form'):#insert enters where there are new linebreaking elements
+                elm.append("HTMLENTER_MAGIC_STR_ENTER")
+
+        raw_text = soup.get_text().strip().replace("\n"," ") #remove enters in strings HTML renderers does not show these
+        output = re.sub(r'\s{1,}', ' ', raw_text) #remove any place with more than one space HTML only renders one space even if there are many
+        output = output.replace("HTMLENTER_MAGIC_STR_ENTER", "\n") #insert enters that come from HTML block elements
+        output = re.sub(r'\s{3,}', "\n\n", output) #Remove execive nr of newlines
+        output = output.replace("\n ", "\n").strip() #Remove space in beginin of newline and strip whitespace in the ends of the string
         return output
 
     def prep_text(self, text_in):
@@ -599,10 +611,8 @@ class EpubToAudiobook:
         text = re.sub(" +", " ", text).lower().strip()
         ratio = fuzz.ratio(text, result["text"].lower())
         print(f"Transcript: {result['text'].lower()}") if self.debug else None
-        print(
-            f"Text to transcript comparison ratio: {ratio}"
-        ) if self.debug else None
-        return ratio
+        print(f"Text to transcript comparison ratio: {ratio}") if self.debug else None
+        return ratio, result['text']
 
     def combine_sentences(self, sentences, length=1000):
         for sentence in sentences:
@@ -761,6 +771,8 @@ class EpubToAudiobook:
                 }
 
                 if engine == "xtts":
+                    config['xtts_model'] = self.xtts_model
+                    config['no_deepspeed'] = self.no_deepspeed
                     engine_cl = XTTS(config)
 
                 elif engine == "openai":
@@ -806,26 +818,20 @@ class EpubToAudiobook:
                         while retries > 0:
                             try:
                                 engine_cl.proccess_text(sentence_groups[x], tempwav)
-
+                                result_text = ""
                                 if self.minratio == 0:
                                     print("Skipping whisper transcript comparison") if self.debug else None
                                     ratio = self.minratio
                                 else:
-                                    ratio = self.compare(sentence_groups[x], tempwav)
+                                    ratio, result_text = self.compare(sentence_groups[x], tempwav)
                                 if ratio < self.minratio:
-                                    raise Exception(
-                                        f"Spoken text did not sound right after control with whisper - {ratio}"
-                                    )
+                                    raise Exception(f"Spoken text did not sound right after control with whisper - {ratio}\nInput: {sentence_groups[x]}\nOutput: {result_text}")
                                 break
                             except Exception as e:
                                 retries -= 1
-                                print(
-                                    f"Error: {e} ... Retrying ({retries} retries left)"
-                                )
+                                print(f"Error: {e} ... Retrying ({retries} retries left)")
                         if retries == 0:
-                            print(
-                                f"Something is wrong with the audio ({ratio}): {tempwav}"
-                            )
+                            print(f"Something is wrong with the audio ({ratio}): {tempwav}")
                         if engine == "openai" or engine == "edge":
                             temp = AudioSegment.from_mp3(tempwav)
                         else:
@@ -834,9 +840,7 @@ class EpubToAudiobook:
                 tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
                 concatenated = sum(tempwavfiles)
                 # remove silence, then export to wav
-                print(
-                    f"Replacing silences longer than one second with one second of silence ({outputwav})"
-                )
+                print(f"Replacing silences longer than one second with one second of silence ({outputwav})")
                 one_sec_silence = AudioSegment.silent(duration=1000)
                 two_sec_silence = AudioSegment.silent(duration=2000)
                 # This AudioSegment is dedicated for each file.
@@ -863,9 +867,7 @@ class EpubToAudiobook:
             chars_remaining = total_chars - position
             estimated_total_time = elapsed_time / position * total_chars
             estimated_time_remaining = estimated_total_time - elapsed_time
-            print(
-                f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes"
-            )
+            print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
             gc.collect()
             torch.cuda.empty_cache()
         outputm4a = self.output_filename.replace("m4b", "m4a")
@@ -1101,6 +1103,8 @@ def main():
         speaker = "en-US-AndrewNeural"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
+    elif args.engine == "xtts" and args.speaker == None:
+        speaker = "Damien Black"
     else:
         speaker = args.speaker
     print(f"in main, Speaker is {speaker}")
