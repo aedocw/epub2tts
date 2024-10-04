@@ -909,8 +909,12 @@ class EpubToAudiobook:
             #gc.collect()
             #torch.cuda.empty_cache()
         print("initiating work:")
-        pool = mp.Pool(processes=self.threads)
-        files = pool.map(process_book_chapter, chapter_job_que)
+        files = []
+        if self.device == 'cuda':
+            files = map(process_book_chapter, chapter_job_que)
+        else:
+            pool = mp.Pool(processes=self.threads)
+            files = pool.map(process_book_chapter, chapter_job_que)
         outputm4a = self.output_filename.replace("m4b", "m4a")
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
