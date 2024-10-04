@@ -1075,10 +1075,14 @@ def main():
     args = parser.parse_args()
     print(args)
 
+    xtts_arg_present = False
+
     if args.openai:
         args.engine = "openai"
     elif args.xtts:
         args.engine = "xtts"
+        xtts_arg_present = True
+        
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
@@ -1103,7 +1107,7 @@ def main():
         speaker = "en-US-AndrewNeural"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
-    elif args.engine == "xtts" and args.speaker == None and not args.xtts:
+    elif args.engine == "xtts" and args.speaker == None and not xtts_arg_present:
         speaker = "Damien Black"
     else:
         speaker = args.speaker
