@@ -5,6 +5,7 @@ import os
 import copy
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
 import pkg_resources
+import multiprocessing as mp
 import re
 import subprocess
 import sys
@@ -25,7 +26,6 @@ from pedalboard.io import AudioFile
 from PIL import Image
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-from tqdm import tqdm
 from TTS.api import TTS
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
@@ -60,6 +60,23 @@ class Text2WaveFile:
         takes a pice of text and generates audio from it then saves that audio in wave_file_name
         returns True if successfull
         """
+    def proccess_text_retry(self, text, wave_file_name):
+        retries = 2
+        while retries > 0:
+            self.proccess_text(text, wave_file_name)
+            result_text = ""
+            if self.config['minratio'] == 0:
+                print("Skipping whisper transcript comparison") if self.config['debug'] else None
+                ratio = self.config['minratio']
+            else:
+                ratio, result_text = self.compare(text, wave_file_name)
+            if ratio < self.config['minratio']:
+                print(f"Spoken text did not sound right after control with whisper - {ratio}\nInput: {text}\nOutput: {result_text}")
+            else:
+                break
+            retries -= 1
+        if retries == 0:
+            print(f"Something is wrong with the audio acording to whisper ({ratio}): {tempwav}")
 
 class EdgeTTS(Text2WaveFile):
     def __init__(self, config = {}):
@@ -120,7 +137,7 @@ class XTTS(Text2WaveFile):
 
         if 'voice_samples' in config:
             self.voice_samples = self.config['voice_samples']
-        
+
         self.language = self.config['language']
         self.xtts_model = self.config['xtts_model']
 
@@ -277,11 +294,53 @@ class org_TTS(Text2WaveFile):
                 text=text, file_path=wave_file_name
             )
 
+def join_temp_files_to_chapter(tempfiles, outputwav):
+    tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
+    concatenated = sum(tempwavfiles)
+    # remove silence, then export to wav
+    #print(f"Replacing silences longer than one second with one second of silence ({outputwav})")
+    one_sec_silence = AudioSegment.silent(duration=1000)
+    two_sec_silence = AudioSegment.silent(duration=2000)
+    # This AudioSegment is dedicated for each file.
+    audio_modified = AudioSegment.empty()
+    # Split audio into chunks where detected silence is longer than one second
+    chunks = split_on_silence(
+        concatenated, min_silence_len=1000, silence_thresh=-50
+    )
+    # Iterate through each chunk
+    for chunkindex, chunk in enumerate(chunks):
+        audio_modified += chunk
+        audio_modified += one_sec_silence
+    # add extra 2sec silence at the end of each part/chapter
+    audio_modified += two_sec_silence
+    # Write modified audio to the final audio segment
+    audio_modified.export(outputwav, format="wav")
+    for f in tempfiles:
+        os.remove(f)
+
+#def process_book_sentance(dat):
+
+def process_book_chapter(dat):
+    print("initiating chapter: ", dat['chapter'])
+    #chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav', outputwav}))
+    #tts_engine = dat.config['engine_cl'](dat.config)
+    tts_engine = dat['config']['engine_cl'](dat['config'])
+    for text, file_name in dat['sentene_job_que']:
+        tts_engine.proccess_text_retry(text, file_name)
+    #pool = mp.Pool()
+    #files = pool.starmap(process_book_sentance, dat['sentene_job_que'])
+    join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
+    print("done chapter: ", dat['chapter'])
+    return dat['outputwav']
+
+
+
 class EpubToAudiobook:
     def __init__(
         self,
         source,
         start,
+        threads,
         end,
         skiplinks,
         engine,
@@ -298,6 +357,7 @@ class EpubToAudiobook:
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
+        self.threads = threads
         self.end = end
         self.language = language
         self.skiplinks = skiplinks
@@ -712,7 +772,6 @@ class EpubToAudiobook:
 
         text = '\n'.join(lines)   # Join the lines back
         return metadata, text
-
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
         self.openai = openai
@@ -747,11 +806,19 @@ class EpubToAudiobook:
                     print("Continuing...")
                     break
 
+        if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
+            #we are using coqui voice, so make smaller chunks
+            sentance_chunk_length = 500
+        else:
+            sentance_chunk_length = 1000
+
         files = []
         position = 0
         start_time = time.time()
         print(f"Reading from {self.start + 1} to {self.end}")
+        chapter_job_que = []
         for partnum, i in enumerate(range(self.start, self.end)):
+            sentene_job_que = []
             outputwav = f"{self.bookname}-{i + 1}.wav"
             if os.path.isfile(outputwav):
                 print(f"{outputwav} exists, skipping to next chapter")
@@ -767,47 +834,47 @@ class EpubToAudiobook:
                 if self.section_speakers[i] != None:
                     speaker = self.section_speakers[i]
 
-                engine_cl = None
                 config = {
                     'speaker': speaker,
                     'language': self.language,
                     'model_name': model_name,
-                    'device': self.device
+                    'debug': self.debug,
+                    'device': self.device,
+                    'minratio': self.minratio,
+                    'engine_cl': None
                 }
 
                 if engine == "xtts":
                     config['voice_samples'] = self.voice_samples
                     config['xtts_model'] = self.xtts_model
                     config['no_deepspeed'] = self.no_deepspeed
-                    engine_cl = XTTS(config)
+                    config['engine_cl'] = XTTS
 
                 elif engine == "openai":
                     config['api_key'] = self.openai
-                    engine_cl = OpenAI_TTS(config)
-                    self.minratio = 0
+                    config['engine_cl'] = OpenAI_TTS
+                    config['minratio'] = 0
 
                 elif engine == "edge":
-                    engine_cl = EdgeTTS(config)
-                    self.minratio = 0
+                    config['engine_cl'] = EdgeTTS
+                    config['minratio'] = 0
 
                 elif engine == "tts":
-                    engine_cl = org_TTS(config)
+                    config['engine_cl'] = org_TTS
 
                     if config['model_name'] == "tts_models/en/vctk/vits":
-                        self.minratio = 0
+                        config['minratio'] = 0
 
 
                 sentences = sent_tokenize(chapter)
                 #Drop any items that do NOT have at least one letter or number
                 sentences = [s for s in sentences if any(c.isalnum() for c in s)]
-                if engine == "tts" and model_name == "tts_models/multilingual/multi-dataset/xtts_v2":
-                    #we are using coqui voice, so make smaller chunks
-                    length = 500
-                else:
-                    length = 1000
-                sentence_groups = list(self.combine_sentences(sentences, length))
+                sentence_groups = list(self.combine_sentences(sentences, sentance_chunk_length))
 
-                for x in tqdm(range(len(sentence_groups))):
+
+                #tts_engine = config['engine_cl'](config)
+
+                for x in range(len(sentence_groups)):
                     #skip if item is empty
                     if len(sentence_groups[x]) == 0:
                         continue
@@ -815,67 +882,31 @@ class EpubToAudiobook:
                     if not any(char.isalnum() for char in sentence_groups[x]):
                         continue
                     retries = 2
-                    tempwav = "temp" + str(x) + ".wav"
+                    tempwav = "temp"+ str(partnum)+ "_" + str(x) + ".wav"
                     tempflac = tempwav.replace("wav", "flac")
 
                     if os.path.isfile(tempwav):
                         print(tempwav + " exists, skipping to next chunk")
                     else:
-                        while retries > 0:
-                            try:
-                                engine_cl.proccess_text(sentence_groups[x], tempwav)
-                                result_text = ""
-                                if self.minratio == 0:
-                                    print("Skipping whisper transcript comparison") if self.debug else None
-                                    ratio = self.minratio
-                                else:
-                                    ratio, result_text = self.compare(sentence_groups[x], tempwav)
-                                if ratio < self.minratio:
-                                    raise Exception(f"Spoken text did not sound right after control with whisper - {ratio}\nInput: {sentence_groups[x]}\nOutput: {result_text}")
-                                break
-                            except Exception as e:
-                                retries -= 1
-                                print(f"Error: {e} ... Retrying ({retries} retries left)")
-                        if retries == 0:
-                            print(f"Something is wrong with the audio ({ratio}): {tempwav}")
-                        if engine == "openai" or engine == "edge":
-                            temp = AudioSegment.from_mp3(tempwav)
-                        else:
-                            temp = AudioSegment.from_wav(tempwav)
+                        sentene_job_que.append((sentence_groups[x], tempwav))
+                        #tts_engine.proccess_text_retry(sentence_groups[x], tempwav)
                     tempfiles.append(tempwav)
-                tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
-                concatenated = sum(tempwavfiles)
-                # remove silence, then export to wav
-                print(f"Replacing silences longer than one second with one second of silence ({outputwav})")
-                one_sec_silence = AudioSegment.silent(duration=1000)
-                two_sec_silence = AudioSegment.silent(duration=2000)
-                # This AudioSegment is dedicated for each file.
-                audio_modified = AudioSegment.empty()
-                # Split audio into chunks where detected silence is longer than one second
-                chunks = split_on_silence(
-                    concatenated, min_silence_len=1000, silence_thresh=-50
-                )
-                # Iterate through each chunk
-                for chunkindex, chunk in enumerate(tqdm(chunks)):
-                    audio_modified += chunk
-                    audio_modified += one_sec_silence
-                # add extra 2sec silence at the end of each part/chapter
-                audio_modified += two_sec_silence
-                # Write modified audio to the final audio segment
-                audio_modified.export(outputwav, format="wav")
-                for f in tempfiles:
-                    os.remove(f)
-            files.append(outputwav)
-            position += len(self.chapters_to_read[i])
-            percentage = (position / total_chars) * 100
-            print(f"{percentage:.2f}% spoken so far.")
-            elapsed_time = time.time() - start_time
-            chars_remaining = total_chars - position
-            estimated_total_time = elapsed_time / position * total_chars
-            estimated_time_remaining = estimated_total_time - elapsed_time
-            print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
-            gc.collect()
-            torch.cuda.empty_cache()
+                chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav': outputwav, 'chapter': self.section_names[i].strip()}))
+
+            #files.append(outputwav)
+            #position += len(self.chapters_to_read[i])
+            #percentage = (position / total_chars) * 100
+            #print(f"{percentage:.2f}% spoken so far.")
+            #elapsed_time = time.time() - start_time
+            #chars_remaining = total_chars - position
+            #estimated_total_time = elapsed_time / position * total_chars
+            #estimated_time_remaining = estimated_total_time - elapsed_time
+            #print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
+            #gc.collect()
+            #torch.cuda.empty_cache()
+        print("initiating work:")
+        pool = mp.Pool(processes=self.threads)
+        files = pool.map(process_book_chapter, chapter_job_que)
         outputm4a = self.output_filename.replace("m4b", "m4a")
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
@@ -1000,6 +1031,12 @@ def main():
         help="Chapter/part to start from",
     )
     parser.add_argument(
+        "--threads",
+        type=int,
+        default=16,
+        help="Number of threads to use",
+    )
+    parser.add_argument(
         "--end",
         type=int,
         nargs="?",
@@ -1082,16 +1119,15 @@ def main():
     print(args)
 
     xtts_arg_present = False
-
     if args.openai:
         args.engine = "openai"
     elif args.xtts:
         args.engine = "xtts"
         xtts_arg_present = True
-        
     mybook = EpubToAudiobook(
         source=args.sourcefile,
         start=args.start,
+        threads=args.threads,
         end=args.end,
         skiplinks=args.skiplinks,
         engine=args.engine,
