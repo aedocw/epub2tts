@@ -824,10 +824,14 @@ class EpubToAudiobook:
                 print(f"{outputwav} exists, skipping to next chapter")
             else:
                 tempfiles = []
+                chapter_name = "Part " + str(partnum + 1)
+                if len(self.section_names) > 0:
+                    chapter_name = self.section_names[i].strip()
+
                 if self.sayparts and len(self.section_names) == 0:
-                    chapter = "Part " + str(partnum + 1) + ". " + self.chapters_to_read[i]
+                    chapter = chapter_name + ". " + self.chapters_to_read[i]
                 elif self.sayparts and len(self.section_names) > 0:
-                    chapter = self.section_names[i].strip() + ".\n" + self.chapters_to_read[i]
+                    chapter = chapter_name + ".\n" + self.chapters_to_read[i]
                 else:
                     chapter = self.chapters_to_read[i]
 
@@ -891,7 +895,7 @@ class EpubToAudiobook:
                         sentene_job_que.append((sentence_groups[x], tempwav))
                         #tts_engine.proccess_text_retry(sentence_groups[x], tempwav)
                     tempfiles.append(tempwav)
-                chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav': outputwav, 'chapter': self.section_names[i].strip()}))
+                chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav': outputwav, 'chapter': chapter_name}))
 
             #files.append(outputwav)
             #position += len(self.chapters_to_read[i])
