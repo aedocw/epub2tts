@@ -1103,7 +1103,7 @@ def main():
         speaker = "en-US-AndrewNeural"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
-    elif args.engine == "xtts" and args.speaker == None:
+    elif args.engine == "xtts" and args.speaker == None and not args.xtts:
         speaker = "Damien Black"
     else:
         speaker = args.speaker
