@@ -117,6 +117,10 @@ class XTTS(Text2WaveFile):
             self.debug = config['debug']
 
         self.config = config
+
+        if 'voice_samples' in config:
+            self.voice_samples = self.config['voice_samples']
+        
         self.language = self.config['language']
         self.xtts_model = self.config['xtts_model']
 
@@ -712,6 +716,7 @@ class EpubToAudiobook:
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
         self.model_name = model_name
         self.openai = openai
+        self.voice_samples = None
         if engine == "xtts":
             if voice_samples != None:
                 self.voice_samples = []
@@ -771,6 +776,7 @@ class EpubToAudiobook:
                 }
 
                 if engine == "xtts":
+                    config['voice_samples'] = self.voice_samples
                     config['xtts_model'] = self.xtts_model
                     config['no_deepspeed'] = self.no_deepspeed
                     engine_cl = XTTS(config)
