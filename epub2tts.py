@@ -48,8 +48,8 @@ namespaces = {
 }
 
 class Text2WaveFile:
-    self.whispermodel = None
-    self.debug = False
+    whispermodel = None
+    debug = False
     def __init__(self, config = {}):
         """
         initalizes a Text 2 Wave File class
