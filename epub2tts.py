@@ -894,7 +894,7 @@ class EpubToAudiobook:
         print("initiating work:")
         
         if self.device == 'cuda':
-            map(process_book_chapter, chapter_job_que)
+            map_result = list(map(process_book_chapter, chapter_job_que))
         else:
             pool = mp.Pool(processes=self.threads)
             pool.map(process_book_chapter, chapter_job_que)
