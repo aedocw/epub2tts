@@ -898,6 +898,11 @@ class EpubToAudiobook:
         else:
             pool = mp.Pool(processes=self.threads)
             pool.map(process_book_chapter, chapter_job_que)
+        files2 =[]
+        for filename in files:
+            if os.path.isfile(filename):
+                files2.append(filename)
+        files = files2
         outputm4a = self.output_filename.replace("m4b", "m4a")
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
