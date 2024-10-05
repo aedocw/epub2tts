@@ -1024,8 +1024,8 @@ def main():
     parser.add_argument(
         "--threads",
         type=int,
-        default=1,
-        help="Number of threads to use",
+        default=2,
+        help="Number of threads to use, if using cuda threading is disabled as it does not make things faster since you are limited by the GPU",
     )
     parser.add_argument(
         "--end",
