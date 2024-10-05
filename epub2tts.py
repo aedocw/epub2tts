@@ -318,17 +318,11 @@ def join_temp_files_to_chapter(tempfiles, outputwav):
     for f in tempfiles:
         os.remove(f)
 
-#def process_book_sentance(dat):
-
 def process_book_chapter(dat):
     print("initiating chapter: ", dat['chapter'])
-    #chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav', outputwav}))
-    #tts_engine = dat.config['engine_cl'](dat.config)
     tts_engine = dat['config']['engine_cl'](dat['config'])
     for text, file_name in dat['sentene_job_que']:
         tts_engine.proccess_text_retry(text, file_name)
-    #pool = mp.Pool()
-    #files = pool.starmap(process_book_sentance, dat['sentene_job_que'])
     join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
     print("done chapter: ", dat['chapter'])
     return dat['outputwav']
@@ -820,6 +814,7 @@ class EpubToAudiobook:
         for partnum, i in enumerate(range(self.start, self.end)):
             sentene_job_que = []
             outputwav = f"{self.bookname}-{i + 1}.wav"
+            files.append(outputwav)
             if os.path.isfile(outputwav):
                 print(f"{outputwav} exists, skipping to next chapter")
             else:
@@ -893,28 +888,16 @@ class EpubToAudiobook:
                         print(tempwav + " exists, skipping to next chunk")
                     else:
                         sentene_job_que.append((sentence_groups[x], tempwav))
-                        #tts_engine.proccess_text_retry(sentence_groups[x], tempwav)
                     tempfiles.append(tempwav)
                 chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav': outputwav, 'chapter': chapter_name}))
 
-            #files.append(outputwav)
-            #position += len(self.chapters_to_read[i])
-            #percentage = (position / total_chars) * 100
-            #print(f"{percentage:.2f}% spoken so far.")
-            #elapsed_time = time.time() - start_time
-            #chars_remaining = total_chars - position
-            #estimated_total_time = elapsed_time / position * total_chars
-            #estimated_time_remaining = estimated_total_time - elapsed_time
-            #print(f"Elapsed: {int(elapsed_time / 60)} minutes, ETA: {int((estimated_time_remaining) / 60)} minutes")
-            #gc.collect()
-            #torch.cuda.empty_cache()
         print("initiating work:")
-        files = []
+        
         if self.device == 'cuda':
-            files = map(process_book_chapter, chapter_job_que)
+            map(process_book_chapter, chapter_job_que)
         else:
             pool = mp.Pool(processes=self.threads)
-            files = pool.map(process_book_chapter, chapter_job_que)
+            pool.map(process_book_chapter, chapter_job_que)
         outputm4a = self.output_filename.replace("m4b", "m4a")
         filelist = "filelist.txt"
         with open(filelist, "w") as f:
@@ -1041,7 +1024,7 @@ def main():
     parser.add_argument(
         "--threads",
         type=int,
-        default=16,
+        default=1,
         help="Number of threads to use",
     )
     parser.add_argument(
