@@ -48,6 +48,8 @@ namespaces = {
 }
 
 class Text2WaveFile:
+    self.whispermodel = None
+    self.debug = False
     def __init__(self, config = {}):
         """
         initalizes a Text 2 Wave File class
@@ -60,6 +62,19 @@ class Text2WaveFile:
         takes a pice of text and generates audio from it then saves that audio in wave_file_name
         returns True if successfull
         """
+
+    def compare(self, text, wavfile):
+        if self.whispermodel is None:
+            self.whispermodel = whisper.load_model("tiny")
+        
+        result = self.whispermodel.transcribe(wavfile)
+        text = re.sub(" +", " ", text).lower().strip()
+        ratio = fuzz.ratio(text, result["text"].lower())
+        print(f"Transcript: {result['text'].lower()}") if self.debug else None
+        print(f"Text to transcript comparison ratio: {ratio}") if self.debug else None
+        return ratio, result['text']
+
+    
     def proccess_text_retry(self, text, wave_file_name):
         retries = 2
         while retries > 0:
@@ -385,7 +400,7 @@ class EpubToAudiobook:
             )
         else:
             self.xtts_model = f"{self.tts_dir}/{model_name}"
-        self.whispermodel = whisper.load_model("tiny")
+        
         self.ffmetadatafile = "FFMETADATAFILE"
         if torch.cuda.is_available():
             self.device = "cuda"
@@ -662,16 +677,7 @@ class EpubToAudiobook:
             self.end = len(self.chapters_to_read)
         print(f"Section names: {self.section_names}") if self.debug else None
 
-
-
-    def compare(self, text, wavfile):
-        result = self.whispermodel.transcribe(wavfile)
-        text = re.sub(" +", " ", text).lower().strip()
-        ratio = fuzz.ratio(text, result["text"].lower())
-        print(f"Transcript: {result['text'].lower()}") if self.debug else None
-        print(f"Text to transcript comparison ratio: {ratio}") if self.debug else None
-        return ratio, result['text']
-
+    
     def combine_sentences(self, sentences, length=1000):
         for sentence in sentences:
             yield sentence
