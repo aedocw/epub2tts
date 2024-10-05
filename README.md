@@ -12,6 +12,8 @@
 - [x] Resumes where it left off if interrupted
 - [x] NOTE: epub file must be DRM-free
 
+**NOTE:** NEW MULTIPROCESSING FEATURE ADDED! You can now use `--threads N` to specify the number of threads to run where chapters will be processed in parallel! If you're using Edge or OpenAI you can set threads to as many chapters as you've got and they can all be processed at the same time. When using TTS/XTTS, you'll need to do some experimenting to see what your system can handle.
+
 **NOTE:** Check out [epub2tts-edge](https://github.com/aedocw/epub2tts-edge/) for a VERY fast lightweight alternative that only works with MS Edge. That version reads multiple sentences in parallel and goes much quicker!
 
 
@@ -46,6 +48,7 @@ Uses [Microsoft Edge TTS](https://github.com/rany2/edge-tts/) in the cloud, FREE
 
 ## All options
 * -h, --help - show this help message and exit
+* --threads [N] - process N number of chapters in parallel. If you're using Edge or OpenAI you can basically do as many threads as you have chapters. With TTS or XTTS you'll need to experiment to see what works best on your environment. Default number of threads is 2.
 * --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai|edge]
 * --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
 * --openai OPENAI_API_KEY - OpenAI API key if engine is OpenAI
@@ -88,6 +91,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20241005: A few new releases thanks to excellent contributions from https://github.com/calledit - this includes significant refactoring to improve the code base, adding `--threads N` feature for multiprocessing, and support for NCX files that improves detection of how text is separated in an epub.
 * 20240403: Added support for specifying speaker per chapter, https://github.com/aedocw/epub2tts/issues/229
 * 20240320: Added MS Edge cloud TTS support
 * 20240301: Added `--skip-cleanup` option to skip replacement of special characters with ","
