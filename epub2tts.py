@@ -91,7 +91,7 @@ class Text2WaveFile:
                 break
             retries -= 1
         if retries == 0:
-            print(f"Something is wrong with the audio acording to whisper ({ratio}): {tempwav}")
+            print(f"Something is wrong with the audio acording to whisper ({ratio}): {wave_file_name}")
 
 class EdgeTTS(Text2WaveFile):
     def __init__(self, config = {}):
