@@ -141,7 +141,8 @@ git clone https://github.com/aedocw/epub2tts
 cd epub2tts
 pyenv install 3.11
 pyenv local 3.11
-#OPTIONAL - install this in a virtual environment
+#OPTIONAL but recommended - install this in a virtual environment
+pip install coqui-tts --only-binary spacy
 python -m venv .venv && source .venv/bin/activate
 pip install .
 ```
@@ -162,6 +163,7 @@ sudo apt install nvidia-cuda-toolkit
 #clone the repo
 git clone https://github.com/aedocw/epub2tts
 cd epub2tts
+pip install coqui-tts --only-binary spacy
 pip install .
 ```
 
@@ -183,7 +185,7 @@ Running epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps
 7. Decide where you want your epub2tts project to live, documents is a common place. Once you've found a directory you're happy with, clone the project with `git clone https://github.com/aedocw/epub2tts` and cd epub2tts so you're now in your working directory.
 8. There are probably a few different ways you can go here, I personally opted for a venv to keep everything organized. Create a venv with the command `python -m venv .venv`
 9. Activate the venv, on windows the command is slightly different as you issue `.venv\scripts\activate`
-10. Install epub2tts along with the requirements with the command `pip install .`
+10. Install epub2tts along with the requirements with the commands `pip install coqui-tts --only-binary spacy && pip install .`
 
 11. If all goes well, you should be able to call epub2tts from within your venv and update it from this directory going forward. To update, use `git pull` and then `pip install . --upgrade`
 
@@ -202,6 +204,8 @@ Running epub2tts in WSL2 with Ubuntu 22 is the easiest approach, but these steps
 
 <details>
 <summary>DOCKER</summary>
+
+NOTE: Docker image has not been recently updated or tested, may be working but is out of date.
 
 Voice models will be saved locally in `~/.local/share/tts`
 
@@ -239,6 +243,7 @@ python -m venv .venv
 source .venv/bin/activate
 #install dependencies
 sudo apt install espeak-ng ffmpeg
+pip install coqui-tts --only-binary spacy
 pip install -r requirements.txt
 ```
 </details>
