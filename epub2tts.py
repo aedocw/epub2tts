@@ -121,7 +121,7 @@ class OpenAI_TTS(Text2WaveFile):
         self.client = OpenAI(api_key=config['api_key'])
 
     def proccess_text(self, text, wave_file_name):
-        self.client.audio.speech.create(
+        response = self.client.audio.speech.create(
             model="tts-1",
             voice=self.config['speaker'].lower(),
             input=text,
