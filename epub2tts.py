@@ -770,6 +770,14 @@ class EpubToAudiobook:
                 metadata['Author'] = line.replace('Author: ', '').strip()
                 lines.remove(line)  # Remove line from the original list
 
+        # Check for the next non-whitespace line
+        for line in lines:
+            if line.strip():  # Find the first non-empty line
+                if not line.startswith('#'):
+                    print("Error: The first non-whitespace line must start with '#'")
+                    sys.exit(1)  # Exit the script if the condition is not met
+                break  # Exit the loop once the condition is met
+
         text = '\n'.join(lines)   # Join the lines back
         return metadata, text
     def read_book(self, voice_samples, engine, openai, model_name, speaker, bitrate):
