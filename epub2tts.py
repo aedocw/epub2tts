@@ -944,19 +944,20 @@ class EpubToAudiobook:
             chapter_ofset = 0
             sentance_no = 0
             for filename in files:
-                with open(filename+".timing", "wb") as fp:
+                with open(filename+".timing", "rb") as fp:
                     chapter_text_timings = pickle.load(fp)
                     end_ms = 0
-                    for text, start_ms, len_ms in chapter_text_timings:
+                    for start_ms, len_ms, text in chapter_text_timings:
                         sentance_no += 1
                         end_ms = start_ms + len_ms
                         delta_start = timedelta(milliseconds=start_ms)
                         formatted_start = f"{delta_start.seconds // 3600:02}:{(delta_start.seconds % 3600) // 60:02}:{delta_start.seconds % 60:02},{delta_start.microseconds // 1000:03}"
                         delta_end = timedelta(milliseconds=end_ms)
                         formatted_end = f"{delta_end.seconds // 3600:02}:{(delta_end.seconds % 3600) // 60:02}:{delta_end.seconds % 60:02},{delta_end.microseconds // 1000:03}"
-                        f.write(f"{sentance}\n")
-                        f.write(f"{formatted_start} --> {formatted_end}\n")
-                        f.write(f"{text}\n\n")
+                        srt.write(f"{sentance_no}\n")
+                        srt.write(f"{formatted_start} --> {formatted_end}\n")
+                        clean_text = text.replace("\n", " ")
+                        srt.write(f"{clean_text}\n\n")
                         
                         
                     chapter_ofset += end_ms
