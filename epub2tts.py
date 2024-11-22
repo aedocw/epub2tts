@@ -966,6 +966,7 @@ class EpubToAudiobook:
                         
                     chapter_ofset += end_ms
                     chapter_ofset += 2000 #We always add 2s of silence after each chapter, so we account for that
+                    chapter_ofset += 1000 #there is always one "silence chunk", so we acount for that to
 
         for i in self.audioformat:
             if i == "wav":
