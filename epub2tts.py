@@ -733,8 +733,9 @@ class EpubToAudiobook:
                 cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
 
                 return z.open(cover_path)
-        except FileNotFoundError:
+        except:
             print(f"Could not get cover image of {epub_path}")
+            return None
 
     def check_for_file(self, filename):
         if os.path.isfile(filename):
