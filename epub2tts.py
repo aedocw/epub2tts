@@ -954,9 +954,9 @@ class EpubToAudiobook:
                     for start_ms, len_ms, text in chapter_text_timings:
                         sentance_no += 1
                         end_ms = start_ms + len_ms
-                        delta_start = timedelta(milliseconds=start_ms)
+                        delta_start = timedelta(milliseconds=start_ms+chapter_ofset)
                         formatted_start = f"{delta_start.seconds // 3600:02}:{(delta_start.seconds % 3600) // 60:02}:{delta_start.seconds % 60:02},{delta_start.microseconds // 1000:03}"
-                        delta_end = timedelta(milliseconds=end_ms)
+                        delta_end = timedelta(milliseconds=end_ms+chapter_ofset)
                         formatted_end = f"{delta_end.seconds // 3600:02}:{(delta_end.seconds % 3600) // 60:02}:{delta_end.seconds % 60:02},{delta_end.microseconds // 1000:03}"
                         srt.write(f"{sentance_no}\n")
                         srt.write(f"{formatted_start} --> {formatted_end}\n")
