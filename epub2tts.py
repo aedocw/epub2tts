@@ -308,6 +308,11 @@ class org_TTS(Text2WaveFile):
             self.tts.tts_to_file(
                 text=text, file_path=wave_file_name
             )
+           
+def get_duration(file_path):
+    audio = AudioSegment.from_file(file_path)
+    duration_milliseconds = len(audio)
+    return duration_milliseconds
 
 def join_temp_files_to_chapter(tempfiles, outputwav):
     tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
@@ -338,6 +343,16 @@ def process_book_chapter(dat):
     tts_engine = dat['config']['engine_cl'](dat['config'])
     for text, file_name in dat['sentene_job_que']:
         tts_engine.proccess_text_retry(text, file_name)
+
+    text_timings = []
+    time_ofset = 0
+    for text, file_name in dat['sentene_job_que']:
+        sound_start_ms = time_ofset
+        sound_len_ms = get_duration(file_name)
+        time_ofset += sound_len_ms
+        text_timings.append((sound_start_ms, sound_len_ms, text))
+    #TODO: save text_timings to a .srt file
+   
     join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
     print("done chapter: ", dat['chapter'])
     return dat['outputwav']
@@ -431,7 +446,7 @@ class EpubToAudiobook:
             file.write(f"ALBUM={self.title}\n")
             file.write("DESCRIPTION=Made with https://github.com/aedocw/epub2tts\n")
             for file_name in files:
-                duration = self.get_duration(file_name)
+                duration = get_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
                 file.write(f"START={start_time}\n")
@@ -443,10 +458,6 @@ class EpubToAudiobook:
                 chap += 1
                 start_time += duration
 
-    def get_duration(self, file_path):
-        audio = AudioSegment.from_file(file_path)
-        duration_milliseconds = len(audio)
-        return duration_milliseconds
 
     def get_length(self, start, end, chapters_to_read):
         total_chars = 0
