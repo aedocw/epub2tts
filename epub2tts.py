@@ -1,6 +1,7 @@
 import argparse
 import re
 import asyncio
+import pickle
 import os
 import copy
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
@@ -351,7 +352,9 @@ def process_book_chapter(dat):
         sound_len_ms = get_duration(file_name)
         time_ofset += sound_len_ms
         text_timings.append((sound_start_ms, sound_len_ms, text))
-    #TODO: save text_timings to a .srt file
+    
+    with open(dat['outputwav']+".timing", "wb") as fp:
+        pickle.dump(text_timings, fp)
    
     join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
     print("done chapter: ", dat['chapter'])
