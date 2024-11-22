@@ -333,6 +333,10 @@ def join_temp_files_to_chapter(tempfiles, outputwav):
     for chunkindex, chunk in enumerate(chunks):
         audio_modified += chunk
         audio_modified += one_sec_silence
+
+    if len(chunks) != 1:
+        print("Warning, parts with silence was removed .srt will be out of sync")
+        
     # add extra 2sec silence at the end of each part/chapter
     audio_modified += two_sec_silence
     # Write modified audio to the final audio segment
@@ -961,6 +965,7 @@ class EpubToAudiobook:
                         
                         
                     chapter_ofset += end_ms
+                    chapter_ofset += 2000 #We always add 2s of silence after each chapter, so we account for that
 
         for i in self.audioformat:
             if i == "wav":
