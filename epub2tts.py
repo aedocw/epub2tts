@@ -2,6 +2,7 @@ import argparse
 import re
 import asyncio
 import pickle
+from datetime import timedelta
 import os
 import copy
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
@@ -949,8 +950,12 @@ class EpubToAudiobook:
                     for text, start_ms, len_ms in chapter_text_timings:
                         sentance_no += 1
                         end_ms = start_ms + len_ms
+                        delta_start = timedelta(milliseconds=start_ms)
+                        formatted_start = f"{delta_start.seconds // 3600:02}:{(delta_start.seconds % 3600) // 60:02}:{delta_start.seconds % 60:02},{delta_start.microseconds // 1000:03}"
+                        delta_end = timedelta(milliseconds=end_ms)
+                        formatted_end = f"{delta_end.seconds // 3600:02}:{(delta_end.seconds % 3600) // 60:02}:{delta_end.seconds % 60:02},{delta_end.microseconds // 1000:03}"
                         f.write(f"{sentance}\n")
-                        f.write(f"{start_ms} --> 00:31:39,928\n")
+                        f.write(f"{formatted_start} --> {formatted_end}\n")
                         f.write(f"{text}\n\n")
                         
                         
