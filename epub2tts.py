@@ -939,6 +939,23 @@ class EpubToAudiobook:
                 filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
 
+        with open(self.output_filename+".srt", "w", encoding='utf8') as srt:
+            chapter_ofset = 0
+            sentance_no = 0
+            for filename in files:
+                with open(filename+".timing", "wb") as fp:
+                    chapter_text_timings = pickle.load(fp)
+                    end_ms = 0
+                    for text, start_ms, len_ms in chapter_text_timings:
+                        sentance_no += 1
+                        end_ms = start_ms + len_ms
+                        f.write(f"{sentance}\n")
+                        f.write(f"{start_ms} --> 00:31:39,928\n")
+                        f.write(f"{text}\n\n")
+                        
+                        
+                    chapter_ofset += end_ms
+
         for i in self.audioformat:
             if i == "wav":
                 outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
@@ -1005,6 +1022,7 @@ class EpubToAudiobook:
             os.remove(self.ffmetadatafile)
             for f in files:
                 os.remove(f)
+                os.remove(f+".timing")
         print(self.output_filename + " complete")
 
 
