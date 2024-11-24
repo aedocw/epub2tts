@@ -544,7 +544,7 @@ class EpubToAudiobook:
         output = re.sub(r'\s{1,}', ' ', raw_text) #remove any place with more than one space HTML only renders one space even if there are many
         output = output.replace("HTMLENTER_MAGIC_STR_ENTER", "\n") #insert enters that come from HTML block elements
         output = re.sub(r'\s{3,}', "\n\n", output) #Remove execive nr of newlines
-        output = output.replace("\n ", "\n").strip() #Remove space in beginin of newline and strip whitespace in the ends of the string
+        output = output.replace("\n ", "\n").replace(" \n", "\n").strip() #Remove space in beginin of newline and strip whitespace in the ends of the string
         return output
 
     def prep_text(self, text_in):
