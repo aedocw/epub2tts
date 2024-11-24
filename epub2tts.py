@@ -329,24 +329,24 @@ def join_temp_files_to_chapter(tempfiles, outputwav):
     chunks = split_on_silence(
         concatenated, min_silence_len=1000, silence_thresh=-50
     )
-    msec_removed = 0
+    msec_added = 0
     # Iterate through each chunk
     for chunkindex, chunk in enumerate(chunks):
         audio_modified += chunk
         audio_modified += one_sec_silence
-        msec_removed += 1000
+        msec_added += 1000
 
     if len(chunks) != 1:
         print("Warning, parts with silence was removed .srt will be out of sync")
         
     # add extra 2sec silence at the end of each part/chapter
-    msec_removed += 2000
+    msec_added += 2000
     audio_modified += two_sec_silence
     # Write modified audio to the final audio segment
     audio_modified.export(outputwav, format="wav")
     for f in tempfiles:
         os.remove(f)
-    return msec_removed
+    return msec_added
 
 def process_book_chapter(dat):
     print("initiating chapter: ", dat['chapter'])
