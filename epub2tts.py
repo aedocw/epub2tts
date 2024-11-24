@@ -1,6 +1,8 @@
 import argparse
 import re
 import asyncio
+import pickle
+from datetime import timedelta
 import os
 import copy
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
@@ -308,6 +310,11 @@ class org_TTS(Text2WaveFile):
             self.tts.tts_to_file(
                 text=text, file_path=wave_file_name
             )
+           
+def get_duration(file_path):
+    audio = AudioSegment.from_file(file_path)
+    duration_milliseconds = len(audio)
+    return duration_milliseconds
 
 def join_temp_files_to_chapter(tempfiles, outputwav):
     tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
@@ -322,23 +329,49 @@ def join_temp_files_to_chapter(tempfiles, outputwav):
     chunks = split_on_silence(
         concatenated, min_silence_len=1000, silence_thresh=-50
     )
+    msec_added = 0
     # Iterate through each chunk
     for chunkindex, chunk in enumerate(chunks):
         audio_modified += chunk
         audio_modified += one_sec_silence
+        msec_added += 1000
+
+    if len(chunks) != 1:
+        print("Warning, parts with silence was removed .srt will be out of sync")
+        
     # add extra 2sec silence at the end of each part/chapter
+    msec_added += 2000
     audio_modified += two_sec_silence
     # Write modified audio to the final audio segment
     audio_modified.export(outputwav, format="wav")
     for f in tempfiles:
         os.remove(f)
+    return msec_added
 
 def process_book_chapter(dat):
     print("initiating chapter: ", dat['chapter'])
     tts_engine = dat['config']['engine_cl'](dat['config'])
     for text, file_name in dat['sentene_job_que']:
         tts_engine.proccess_text_retry(text, file_name)
+
+    text_timings = []
+    time_ofset = 0
+    for text, file_name in dat['sentene_job_que']:
+        sound_start_ms = time_ofset
+        sound_len_ms = get_duration(file_name)
+        time_ofset += sound_len_ms
+        text_timings.append((sound_start_ms, sound_len_ms, text))
+
     join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
+
+    actual_chaper_len_msec = get_duration(dat['outputwav'])
+
+    text_timings.append((actual_chaper_len_msec, 0, "")) #append empty entry to help resyncronise after silence removal
+    
+    with open(dat['outputwav']+".timing", "wb") as fp:
+        pickle.dump(text_timings, fp)
+   
+    
     print("done chapter: ", dat['chapter'])
     return dat['outputwav']
 
@@ -431,7 +464,7 @@ class EpubToAudiobook:
             file.write(f"ALBUM={self.title}\n")
             file.write("DESCRIPTION=Made with https://github.com/aedocw/epub2tts\n")
             for file_name in files:
-                duration = self.get_duration(file_name)
+                duration = get_duration(file_name)
                 file.write("[CHAPTER]\n")
                 file.write("TIMEBASE=1/1000\n")
                 file.write(f"START={start_time}\n")
@@ -443,10 +476,6 @@ class EpubToAudiobook:
                 chap += 1
                 start_time += duration
 
-    def get_duration(self, file_path):
-        audio = AudioSegment.from_file(file_path)
-        duration_milliseconds = len(audio)
-        return duration_milliseconds
 
     def get_length(self, start, end, chapters_to_read):
         total_chars = 0
@@ -515,7 +544,7 @@ class EpubToAudiobook:
         output = re.sub(r'\s{1,}', ' ', raw_text) #remove any place with more than one space HTML only renders one space even if there are many
         output = output.replace("HTMLENTER_MAGIC_STR_ENTER", "\n") #insert enters that come from HTML block elements
         output = re.sub(r'\s{3,}', "\n\n", output) #Remove execive nr of newlines
-        output = output.replace("\n ", "\n").strip() #Remove space in beginin of newline and strip whitespace in the ends of the string
+        output = output.replace("\n ", "\n").replace(" \n", "\n").strip() #Remove space in beginin of newline and strip whitespace in the ends of the string
         return output
 
     def prep_text(self, text_in):
@@ -925,6 +954,30 @@ class EpubToAudiobook:
                 filename = filename.replace("'", "'\\''")
                 f.write(f"file '{filename}'\n")
 
+        with open(self.output_filename+".srt", "w", encoding='utf8') as srt:
+            chapter_ofset = 0
+            sentance_no = 0
+            for filename in files:
+                with open(filename+".timing", "rb") as fp:
+                    chapter_text_timings = pickle.load(fp)
+                    end_ms = 0
+                    for start_ms, len_ms, text in chapter_text_timings:
+                        end_ms = start_ms + len_ms
+                        if text == "": #If the text is empty we count the time but dont add any text
+                            continue
+                        sentance_no += 1
+                        delta_start = timedelta(milliseconds=start_ms+chapter_ofset)
+                        formatted_start = f"{delta_start.seconds // 3600:02}:{(delta_start.seconds % 3600) // 60:02}:{delta_start.seconds % 60:02},{delta_start.microseconds // 1000:03}"
+                        delta_end = timedelta(milliseconds=end_ms+chapter_ofset)
+                        formatted_end = f"{delta_end.seconds // 3600:02}:{(delta_end.seconds % 3600) // 60:02}:{delta_end.seconds % 60:02},{delta_end.microseconds // 1000:03}"
+                        srt.write(f"{sentance_no}\n")
+                        srt.write(f"{formatted_start} --> {formatted_end}\n")
+                        clean_text = text.replace("\n", " ")
+                        srt.write(f"{clean_text}\n\n")
+                        
+                        
+                    chapter_ofset += end_ms
+
         for i in self.audioformat:
             if i == "wav":
                 outputm4a = outputm4a.replace(".m4a", "_without_metadata.wav")
@@ -991,6 +1044,7 @@ class EpubToAudiobook:
             os.remove(self.ffmetadatafile)
             for f in files:
                 os.remove(f)
+                os.remove(f+".timing")
         print(self.output_filename + " complete")
 
 
