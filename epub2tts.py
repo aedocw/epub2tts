@@ -329,20 +329,24 @@ def join_temp_files_to_chapter(tempfiles, outputwav):
     chunks = split_on_silence(
         concatenated, min_silence_len=1000, silence_thresh=-50
     )
+    msec_removed = 0
     # Iterate through each chunk
     for chunkindex, chunk in enumerate(chunks):
         audio_modified += chunk
         audio_modified += one_sec_silence
+        msec_removed += 1000
 
     if len(chunks) != 1:
         print("Warning, parts with silence was removed .srt will be out of sync")
         
     # add extra 2sec silence at the end of each part/chapter
+    msec_removed += 2000
     audio_modified += two_sec_silence
     # Write modified audio to the final audio segment
     audio_modified.export(outputwav, format="wav")
     for f in tempfiles:
         os.remove(f)
+    return msec_removed
 
 def process_book_chapter(dat):
     print("initiating chapter: ", dat['chapter'])
@@ -357,11 +361,17 @@ def process_book_chapter(dat):
         sound_len_ms = get_duration(file_name)
         time_ofset += sound_len_ms
         text_timings.append((sound_start_ms, sound_len_ms, text))
+
+    join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
+
+    actual_chaper_len_msec = get_duration(dat['outputwav'])
+
+    text_timings.append((actual_chaper_len_msec, 0, "")) #append empty entry to help resyncronise after silence removal
     
     with open(dat['outputwav']+".timing", "wb") as fp:
         pickle.dump(text_timings, fp)
    
-    join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
+    
     print("done chapter: ", dat['chapter'])
     return dat['outputwav']
 
@@ -952,8 +962,10 @@ class EpubToAudiobook:
                     chapter_text_timings = pickle.load(fp)
                     end_ms = 0
                     for start_ms, len_ms, text in chapter_text_timings:
-                        sentance_no += 1
                         end_ms = start_ms + len_ms
+                        if text == "": #If the text is empty we count the time but dont add any text
+                            continue
+                        sentance_no += 1
                         delta_start = timedelta(milliseconds=start_ms+chapter_ofset)
                         formatted_start = f"{delta_start.seconds // 3600:02}:{(delta_start.seconds % 3600) // 60:02}:{delta_start.seconds % 60:02},{delta_start.microseconds // 1000:03}"
                         delta_end = timedelta(milliseconds=end_ms+chapter_ofset)
@@ -965,8 +977,6 @@ class EpubToAudiobook:
                         
                         
                     chapter_ofset += end_ms
-                    chapter_ofset += 2000 #We always add 2s of silence after each chapter, so we account for that
-                    chapter_ofset += 1000 #there is always one "silence chunk", so we acount for that to
 
         for i in self.audioformat:
             if i == "wav":
