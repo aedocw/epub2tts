@@ -22,3 +22,5 @@ tqdm
 transformers==4.40.2
 coqui-tts
 unidecode
+kokoro-onnx
+soundfile

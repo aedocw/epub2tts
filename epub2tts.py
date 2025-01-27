@@ -40,6 +40,10 @@ import torch, gc
 import torchaudio
 import whisper
 
+import soundfile as sf
+from kokoro_onnx import Kokoro
+
+
 namespaces = {
    "calibre":"http://calibre.kovidgoyal.net/2009/metadata",
    "dc":"http://purl.org/dc/elements/1.1/",
@@ -129,6 +133,24 @@ class OpenAI_TTS(Text2WaveFile):
             input=text,
         )
         response.stream_to_file(wave_file_name)
+
+        if os.path.exists(wave_file_name):
+            return True
+        return False
+    
+class Kokoro_TTS(Text2WaveFile):
+    def __init__(self, config = {}):
+        if 'speaker' not in config:
+            raise Exception('no speeker configured')
+        self.config = config
+
+    def proccess_text(self, text, wave_file_name):
+        # Should cbeck for "kokoro-v0_19.onnx" "voices.bin" first, and if not found
+        # tell user where to get the files
+        # speed and lang should be configurable
+        kokoro = Kokoro("kokoro-v0_19.onnx", "voices.bin")
+        samples, sample_rate = kokoro.create(text, voice="af_sky", speed=1.2, lang="en-us")
+        sf.write(wave_file_name, samples, sample_rate)
 
         if os.path.exists(wave_file_name):
             return True
@@ -902,6 +924,10 @@ class EpubToAudiobook:
                     config['engine_cl'] = EdgeTTS
                     config['minratio'] = 0
 
+                elif engine == "kokoro":
+                    config['engine_cl'] = Kokoro_TTS
+                    config['minration'] = 0
+
                 elif engine == "tts":
                     config['engine_cl'] = org_TTS
 
@@ -1061,7 +1087,7 @@ def main():
         default="tts",
         nargs="?",
         const="tts",
-        help="Which TTS to use [tts|xtts|openai|edge]",
+        help="Which TTS to use [tts|xtts|openai|edge|kokoro]",
     )
     parser.add_argument(
         "--xtts",
@@ -1098,7 +1124,7 @@ def main():
     parser.add_argument(
         "--threads",
         type=int,
-        default=2,
+        default=1,
         help="Number of threads to use, if using cuda threading is disabled as it does not make things faster since you are limited by the GPU",
     )
     parser.add_argument(
@@ -1212,6 +1238,8 @@ def main():
         speaker = "onyx"
     elif args.engine == "edge" and args.speaker == None:
         speaker = "en-US-AndrewNeural"
+    elif args.engine == "kokoro" and args.speaker == None:
+        speaker = "am_michael"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
     elif args.engine == "xtts" and args.speaker == None and not xtts_arg_present:
