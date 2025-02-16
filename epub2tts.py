@@ -145,13 +145,12 @@ class Kokoro_TTS(Text2WaveFile):
             raise Exception('no speeker configured')
         self.config = config
         self.speaker = self.config['speaker'].lower()
+        self.speed = 1.3
         self.pipeline = KPipeline(lang_code=self.speaker[0])
 
     def proccess_text(self, text, wave_file_name):
-        # Ignoring specified value, using this for now
-        speed = 1.3
         audio_segments = []
-        for gs, ps, audio in self.pipeline(text, voice=self.speaker, speed=speed, split_pattern=r'\n\n\n'):
+        for gs, ps, audio in self.pipeline(text, voice=self.speaker, speed=self.speed, split_pattern=r'\n\n\n'):
             audio_segments.append(audio)
         final_audio = np.concatenate(audio_segments)
         sf.write(wave_file_name, final_audio, 24000)
@@ -421,6 +420,7 @@ class EpubToAudiobook:
         no_deepspeed,
         skip_cleanup,
         audioformat,
+        speed,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -433,6 +433,7 @@ class EpubToAudiobook:
         self.sayparts = sayparts
         self.engine = engine
         self.minratio = minratio
+        self.speed = speed
         self.debug = debug
         self.output_filename = self.bookname + ".m4b"
         self.chapters = []
@@ -930,7 +931,7 @@ class EpubToAudiobook:
 
                 elif engine == "kokoro":
                     config['engine_cl'] = Kokoro_TTS
-                    config['minration'] = 0
+                    config['minratio'] = 0
 
                 elif engine == "tts":
                     config['engine_cl'] = org_TTS
@@ -1243,6 +1244,7 @@ def main():
         no_deepspeed=args.no_deepspeed,
         skip_cleanup=args.skip_cleanup,
         audioformat=args.audioformat,
+        speed=args.speed,
     )
 
     print(f"Language selected: {mybook.language}")
