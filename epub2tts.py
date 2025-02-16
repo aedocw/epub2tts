@@ -15,6 +15,8 @@ import time
 import warnings
 import zipfile
 from pathlib import Path
+from kokoro import KPipeline
+import numpy as np
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -145,12 +147,15 @@ class Kokoro_TTS(Text2WaveFile):
         self.config = config
 
     def proccess_text(self, text, wave_file_name):
-        # Should cbeck for "kokoro-v0_19.onnx" "voices.bin" first, and if not found
-        # tell user where to get the files
-        # speed and lang should be configurable
-        kokoro = Kokoro("kokoro-v0_19.onnx", "voices.bin")
-        samples, sample_rate = kokoro.create(text, voice="af_sky", speed=1.2, lang="en-us")
-        sf.write(wave_file_name, samples, sample_rate)
+        speaker = self.config['speaker'].lower()
+        # Ignoring specified value, using this for now
+        speed = 1.3
+        pipeline = KPipeline(lang_code=speaker[0])
+        audio_segments = []
+        for gs, ps, audio in pipeline(text, voice=speaker, speed=speed, split_pattern=r'\n\n\n'):
+            audio_segments.append(audio)
+        final_audio = np.concatenate(audio_segments)
+        sf.write(wave_file_name, final_audio, 24000)
 
         if os.path.exists(wave_file_name):
             return True
@@ -1152,6 +1157,14 @@ def main():
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
     )
     parser.add_argument(
+        "--speed",
+        type=float,
+        nargs="?",
+        const=1.3,
+        default=1.3,
+        help="Reading speed for Kokoro, default 1.3",
+    )
+    parser.add_argument(
         "--skiplinks",
         action="store_true",
         help="Skip reading any HTML links"
@@ -1239,7 +1252,7 @@ def main():
     elif args.engine == "edge" and args.speaker == None:
         speaker = "en-US-AndrewNeural"
     elif args.engine == "kokoro" and args.speaker == None:
-        speaker = "am_michael"
+        speaker = "af_sky"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
     elif args.engine == "xtts" and args.speaker == None and not xtts_arg_present:
