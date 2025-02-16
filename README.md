@@ -31,6 +31,13 @@ Using VITS model, all defaults, no GPU required:
 
 * `epub2tts mybook.epub` (To change speaker (ex p307 for a good male voice w/Coqui TTS), add: `--speaker p307`)
 
+## Kokoro
+Uses [Kokoro](https://github.com/hexgrad/kokoro), really high quality TTS.
+
+* Specify a speaker with `--speaker <speaker>`. [Check here for available voices](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md), default speaker is `af_sky` if `--speaker` is not specified.
+* `epub2tts mybook.txt --engine kokoro --speaker am_michael --speed 1.3`
+* NOTE: Speed config is ignored for now, will fix at some point :)
+
 ## MS Edge Cloud TTS:
 Uses [Microsoft Edge TTS](https://github.com/rany2/edge-tts/) in the cloud, FREE, only minimal CPU required, and it's pretty fast (100 minutes for 7hr book for instance). Many voices and languages to choose from, and the quality is really good (listen to `sample-en-US-AvaNeural-edge.m4b` for an example).
 
@@ -49,7 +56,7 @@ Uses [Microsoft Edge TTS](https://github.com/rany2/edge-tts/) in the cloud, FREE
 ## All options
 * -h, --help - show this help message and exit
 * --threads [N] - process N number of chapters in parallel. If you're using Edge or OpenAI you can basically do as many threads as you have chapters. With TTS or XTTS you'll need to experiment to see what works best on your environment. Default number of threads is 2.
-* --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai|edge]
+* --engine [ENGINE] - Which TTS engine to use [tts|xtts|openai|edge|kokoro]
 * --xtts [sample-1.wav,sample-2.wav] - Sample wave/mp3 file(s) for XTTS v2 training separated by commas
 * --openai OPENAI_API_KEY - OpenAI API key if engine is OpenAI
 * --model [MODEL] - TTS model to use, default: tts_models/en/vctk/vits
@@ -91,6 +98,7 @@ If you've found something new, please open an issue and be sure to include:
 <details>
 <summary>Release notes </summary>
 
+* 20250216: Added Kokoro engine, still need to fix using speed parameter
 * 20241005: A few new releases thanks to excellent contributions from https://github.com/calledit - this includes significant refactoring to improve the code base, adding `--threads N` feature for multiprocessing, and support for NCX files that improves detection of how text is separated in an epub.
 * 20240403: Added support for specifying speaker per chapter, https://github.com/aedocw/epub2tts/issues/229
 * 20240320: Added MS Edge cloud TTS support
