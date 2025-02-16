@@ -15,6 +15,8 @@ import time
 import warnings
 import zipfile
 from pathlib import Path
+from kokoro import KPipeline
+import numpy as np
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -39,6 +41,9 @@ import noisereduce
 import torch, gc
 import torchaudio
 import whisper
+import soundfile as sf
+
+
 
 namespaces = {
    "calibre":"http://calibre.kovidgoyal.net/2009/metadata",
@@ -129,6 +134,26 @@ class OpenAI_TTS(Text2WaveFile):
             input=text,
         )
         response.stream_to_file(wave_file_name)
+
+        if os.path.exists(wave_file_name):
+            return True
+        return False
+    
+class Kokoro_TTS(Text2WaveFile):
+    def __init__(self, config = {}):
+        if 'speaker' not in config:
+            raise Exception('no speeker configured')
+        self.config = config
+        self.speaker = self.config['speaker'].lower()
+        self.speed = 1.3
+        self.pipeline = KPipeline(lang_code=self.speaker[0])
+
+    def proccess_text(self, text, wave_file_name):
+        audio_segments = []
+        for gs, ps, audio in self.pipeline(text, voice=self.speaker, speed=self.speed, split_pattern=r'\n\n\n'):
+            audio_segments.append(audio)
+        final_audio = np.concatenate(audio_segments)
+        sf.write(wave_file_name, final_audio, 24000)
 
         if os.path.exists(wave_file_name):
             return True
@@ -395,6 +420,7 @@ class EpubToAudiobook:
         no_deepspeed,
         skip_cleanup,
         audioformat,
+        speed,
     ):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -407,6 +433,7 @@ class EpubToAudiobook:
         self.sayparts = sayparts
         self.engine = engine
         self.minratio = minratio
+        self.speed = speed
         self.debug = debug
         self.output_filename = self.bookname + ".m4b"
         self.chapters = []
@@ -902,6 +929,10 @@ class EpubToAudiobook:
                     config['engine_cl'] = EdgeTTS
                     config['minratio'] = 0
 
+                elif engine == "kokoro":
+                    config['engine_cl'] = Kokoro_TTS
+                    config['minratio'] = 0
+
                 elif engine == "tts":
                     config['engine_cl'] = org_TTS
 
@@ -1061,7 +1092,7 @@ def main():
         default="tts",
         nargs="?",
         const="tts",
-        help="Which TTS to use [tts|xtts|openai|edge]",
+        help="Which TTS to use [tts|xtts|openai|edge|kokoro]",
     )
     parser.add_argument(
         "--xtts",
@@ -1098,7 +1129,7 @@ def main():
     parser.add_argument(
         "--threads",
         type=int,
-        default=2,
+        default=1,
         help="Number of threads to use, if using cuda threading is disabled as it does not make things faster since you are limited by the GPU",
     )
     parser.add_argument(
@@ -1124,6 +1155,14 @@ def main():
         const=93,
         default=88,
         help="Minimum match ratio between text and transcript, 0 to disable whisper",
+    )
+    parser.add_argument(
+        "--speed",
+        type=float,
+        nargs="?",
+        const=1.3,
+        default=1.3,
+        help="Reading speed for Kokoro, default 1.3",
     )
     parser.add_argument(
         "--skiplinks",
@@ -1205,6 +1244,7 @@ def main():
         no_deepspeed=args.no_deepspeed,
         skip_cleanup=args.skip_cleanup,
         audioformat=args.audioformat,
+        speed=args.speed,
     )
 
     print(f"Language selected: {mybook.language}")
@@ -1212,6 +1252,8 @@ def main():
         speaker = "onyx"
     elif args.engine == "edge" and args.speaker == None:
         speaker = "en-US-AndrewNeural"
+    elif args.engine == "kokoro" and args.speaker == None:
+        speaker = "af_sky"
     elif args.engine == "tts" and args.speaker == None:
         speaker = "p335"
     elif args.engine == "xtts" and args.speaker == None and not xtts_arg_present:
