@@ -41,9 +41,8 @@ import noisereduce
 import torch, gc
 import torchaudio
 import whisper
-
 import soundfile as sf
-from kokoro_onnx import Kokoro
+
 
 
 namespaces = {
@@ -145,14 +144,14 @@ class Kokoro_TTS(Text2WaveFile):
         if 'speaker' not in config:
             raise Exception('no speeker configured')
         self.config = config
+        self.pipeline = KPipeline(lang_code=speaker[0])
 
     def proccess_text(self, text, wave_file_name):
         speaker = self.config['speaker'].lower()
         # Ignoring specified value, using this for now
         speed = 1.3
-        pipeline = KPipeline(lang_code=speaker[0])
         audio_segments = []
-        for gs, ps, audio in pipeline(text, voice=speaker, speed=speed, split_pattern=r'\n\n\n'):
+        for gs, ps, audio in self.pipeline(text, voice=speaker, speed=speed, split_pattern=r'\n\n\n'):
             audio_segments.append(audio)
         final_audio = np.concatenate(audio_segments)
         sf.write(wave_file_name, final_audio, 24000)
