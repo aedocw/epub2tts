@@ -1,4 +1,5 @@
 > epub2tts is a free and open source python app to easily create a full-featured audiobook from an epub or text file using realistic text-to-speech from [Coqui AI TTS](https://github.com/coqui-ai/TTS), OpenAI or MS Edge.
+> Also check out [epub2tts-edge](https://github.com/aedocw/epub2tts-edge) and [epub2tts-kokoro](https://github.com/aedocw/epub2tts-kokoro) for lighter-weight engine-specific versions. The kokoro engine is especially good and fast!
 
 ## 🚀 Features
 
