@@ -233,9 +233,13 @@ Pre-requisites:
 ```
 #Example for running scan of "mybook.epub"
 docker run -e COQUI_TOS_AGREED=1 -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --scan
+or with CUDA docker image:
+docker run --rm --gpus all -e COQUI_TOS_AGREED=1 -e CUDA_HOME=/usr/local/cuda -v tts:/root/.local/share/tts -v .:/root -w /root ghcr.io/aedocw/epub2tts:release-cuda12 mybook.epub --scan
 
 #Example for reading parts 3 through 15 of "mybook.epub"
 docker run -e COQUI_TOS_AGREED=1 -v ${PWD}/.local/share/tts:/root/.local/share/tts -v ${PWD}:/root -w /root ghcr.io/aedocw/epub2tts:release mybook.epub --start 3 --end 15
+or with CUDA docker image:
+docker run --rm --gpus all -e COQUI_TOS_AGREED=1 -e CUDA_HOME=/usr/local/cuda -v tts:/root/.local/share/tts -v .:/root -w /root ghcr.io/aedocw/epub2tts:release-cuda12 mybook.epub --start 3 --end 15
 ```
 </details>
 
